@@ -13,15 +13,16 @@ import seaborn as sns
 import os
 from sklearn.linear_model import LogisticRegression
 from scipy.special import expit
+from scipy.stats import mannwhitneyu
 
 
 dir_data = r"D:\Krishna\projects\wildfire_from_lfmc\data\tables"
 os.chdir(dir_data)
-sns.set(style='ticks',font_scale = 1.5)
+sns.set(style='ticks',font_scale = 1.)
 
 #%% ####################################################################
 #distribution of fire per landcover type
-df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_4km_variogram.csv"))
+df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_500m_variogram.csv"))
 df.head()
 df.columns
 df.landcover.unique()
@@ -43,36 +44,58 @@ df = df.loc[df.landcover.isin(lc_dict.keys())]
 df['landcover'] = df.landcover.map(lc_dict)
 
 #%% histogram of buffer zone ring sizes
-# sns.set(style='ticks',font_scale = 1.)
 # fig, ax = plt.subplots(figsize = (3,1))
 
 # df.bufferDist.plot.hist(ax = ax,bins = 9)
 # ax.set_xlabel('Buffer zone radius (m)')
 
 
+#%% variograms
+
+# fig, ax = plt.subplots(figsize = (3,1))
+# df.loc[df.bufferDist == 2001].groupby('landcover').landcover.count().plot.bar(ax = ax)
+# ax.set_xlabel('Landcover classes')
+# ax.set_ylabel('Frequency')
+# ax.set_title('Buffer zone = 2km')
+
+# fig, ax = plt.subplots(figsize = (3,1))
+# df.loc[df.bufferDist == 10001].groupby('landcover').landcover.count().plot.bar(ax = ax)
+# ax.set_xlabel('Landcover classes')
+# ax.set_ylabel('Frequency')
+# ax.set_title('Buffer zone = 10km')
+
+# fig, ax = plt.subplots(figsize = (3,3))
+# df.bufferDist = (df.bufferDist/1000).astype(int)
+# sns.boxplot('bufferDist','area',data = df.loc[df.area>=16],ax=ax,fliersize = 0)
+# # ax.scatter(df.bufferDist, df.area)
+# ax.set_xlabel('Buffer zone radius (km)')
+# ax.set_ylabel('Fire size (km$^2$)')
+# plt.yscale('log')
+# print(df.shape)
+# ax.set_title('Buffer zone = 2km')
 
 #%% histogram of LFMC inside vs. outside
-# sub = df[['lfmc_t_1_inside','lfmc_t_1_outside','landcover']]
-# fig, ax = plt.subplots()
-# sub['lfmc_t_1_inside'].plot.hist(color = 'darkred',alpha = 0.5,bins = 50,ax=ax,label = 'Burned area')
-# sub['lfmc_t_1_outside'].plot.hist(color = 'lime',alpha = 0.5,bins = 50,ax=ax,label = 'Unaffected area')
-# ax.set_xlabel('LFMC (%)')
-# plt.legend()
-filters = (df.BurnDate>=160)&(df.area<20)
-df = df.loc[filters]
-df.shape
+filters = (df.BurnDate>=160)&(df.area<=1)&(df['lfmc_t_1_inside']<120)
 
-sns.set(style='ticks',font_scale = 1.)
-data = df['lfmc_t_1_inside']-df['lfmc_t_1_outside']
-fig, ax = plt.subplots(figsize = (3,3))
-data.plot.hist(color = 'grey',alpha = 0.5,ax=ax,label = 'Difference(BA-UA)')
+df = df.loc[filters]
+fig, ax = plt.subplots()
+df['lfmc_t_1_inside'].plot.hist(color = 'darkred',alpha = 0.5,bins = 50,ax=ax,label = 'Burned area')
+df['lfmc_t_1_outside'].plot.hist(color = 'lime',alpha = 0.5,bins = 50,ax=ax,label = 'Unaffected area')
 ax.set_xlabel('LFMC (%)')
-ax.axvline(data.mean(),color = 'k',linewidth = 2, label = 'mean')
 plt.legend()
 
+print('Number of fires: %d'%df.shape[0])
 
-#%%
-# by landcover
+# data = df['lfmc_t_1_inside']-df['lfmc_t_1_outside']
+# fig, ax = plt.subplots(figsize = (3,3))
+# data.plot.hist(color = 'grey',alpha = 0.5,ax=ax,label = 'Difference(BA-UA)')
+# ax.set_xlabel('LFMC (%)')
+# ax.axvline(data.mean(),color = 'k',linewidth = 2, label = 'mean')
+# plt.legend()
+
+
+#%% histograms by landcover
+# 
 for lc in df.landcover.unique():
     sub = df.loc[df.landcover==lc,['lfmc_t_1_inside','lfmc_t_1_outside','landcover']]
     fig, ax = plt.subplots(figsize = (3,3))
@@ -83,17 +106,23 @@ for lc in df.landcover.unique():
     ax.set_xlabel('LFMC (%)')
     ax.set_title('%s'%lc)
     plt.legend()
+    
+#%% is the difference in histograms significant?
+for lc in df.landcover.unique():
+    sub = df.loc[df.landcover==lc,['lfmc_t_1_inside','lfmc_t_1_outside','landcover']]
+    U, p = mannwhitneyu(sub['lfmc_t_1_inside'] , sub['lfmc_t_1_outside'], alternative = 'less')
+    print("Landcover: %s,\tU = %0.2f,\tp = %0.3f"%(lc,U,p))
 
 #%% comparing lfmc to other climate indices
-for var in ['lfmc','vpd','ppt','erc']:    
-    cols = [col for col in df.columns if var in col]
-    fig, ax = plt.subplots(figsize = (3,3))
-    df[cols[0]].plot.hist(color = 'darkred',alpha = 0.5,ax=ax,label = 'Burned area')
-    df[cols[1]].plot.hist(color = 'lime',alpha = 0.5,ax=ax,label = 'Unaffected area')
-    # ax.axvline(data.mean(),color = 'k',linewidth = 2, label = 'mean')
+# for var in ['lfmc','vpd','ppt','erc']:    
+#     cols = [col for col in df.columns if var in col]
+#     fig, ax = plt.subplots(figsize = (3,3))
+#     df[cols[0]].plot.hist(color = 'darkred',alpha = 0.5,ax=ax,label = 'Burned area')
+#     df[cols[1]].plot.hist(color = 'lime',alpha = 0.5,ax=ax,label = 'Unaffected area')
+#     # ax.axvline(data.mean(),color = 'k',linewidth = 2, label = 'mean')
     
-    ax.set_xlabel('%s %s'%(var.upper(),units[var]))
-    plt.legend()
+#     ax.set_xlabel('%s %s'%(var.upper(),units[var]))
+#     plt.legend()
 
 
 #%% logit
