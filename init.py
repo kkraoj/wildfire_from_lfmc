@@ -6,6 +6,7 @@ Created on Mon May 18 17:14:03 2020
 """
 
 dir_data = r"D:\Krishna\projects\wildfire_from_lfmc\data\tables"
+dir_root = r"D:\Krishna\projects\wildfire_from_lfmc"
 lc_dict = { 
             50: 'Closed broadleaf\ndeciduous',
             70: 'Closed needleleaf\nevergreen',
@@ -16,6 +17,12 @@ lc_dict = {
             130:'Shrubland',
             140:'Grassland',
             }
+
+short_lc = {'enf':'Closed needleleaf\nevergreen',
+            'bdf':'Closed broadleaf\ndeciduous',
+            'mixed':'Mixed forest',
+            'shrub':'Shrubland',
+            'grass': 'Grassland'}
 
 color_dict = {'Closed broadleaf\ndeciduous':'darkorange',
               'Closed needleleaf\nevergreen': 'forestgreen',
