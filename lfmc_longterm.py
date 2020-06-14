@@ -24,19 +24,20 @@ import statsmodels.api as sm
 
 sns.set(style='ticks',font_scale = 0.9)
 df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_500m_variogram.csv"))
+
+dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_extra_lfmc_vars_500m_variogram.csv"))
+dfr = dfr[['lfmc_t_1_seasonal_mean_inside','lfmc_t_1_seasonal_mean_outside', 'lfmc_t_2_inside', 'lfmc_t_2_outside']]
+df = df.join(dfr)
+
+dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_fwi_500m_variogram.csv"))
+dfr = dfr[['fwi_t_4_inside','fwi_t_4_outside']]
+df = df.join(dfr)
+
+
 df = df.loc[df.landcover.isin(lc_dict.keys())]
 df['landcover'] = df.landcover.map(lc_dict)
 
-dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_extra_lfmc_vars_500m_variogram.csv"))
-dfr = dfr.loc[dfr.landcover.isin(lc_dict.keys())]
-dfr['landcover'] = dfr.landcover.map(lc_dict) 
-
-# print(df.shape)
-dfr.shape
-dfr = dfr[['lfmc_t_1_seasonal_mean_inside','lfmc_t_1_seasonal_mean_outside', 'lfmc_t_2_inside', 'lfmc_t_2_outside']]
-
-df = df.join(dfr)
-# print(df.shape)
+print(df.shape)
 
 
 #%% just lfmc first 
