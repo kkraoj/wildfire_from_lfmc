@@ -56,8 +56,8 @@ color_dict = {'Closed broadleaf\ndeciduous':'darkorange',
 SEED = 1
 np.random.seed(SEED)
 #%% functions
-ind = {'lfmc':0,'vpd':1,'ppt':2,'erc':3,'lc':4}
-units= {'lfmc':'%','vpd':'hPa','ppt':'mm','erc':'-','lc':'-'}
+ind = {'lfmc':0,'vpd':1,'ppt':2,'erc':3,'fwi':4,'lc':5}
+units= {'lfmc':'%','vpd':'hPa','ppt':'mm','erc':'-','fwi':'-','lc':'-'}
 def sample(x,y,sampling_ratio = 10000):
     non_nan_ind=np.where(~np.isnan(x))[0]
     x=x.take(non_nan_ind);y=y.take(non_nan_ind)
@@ -68,7 +68,7 @@ def sample(x,y,sampling_ratio = 10000):
     x=x.take(inds);y=y.take(inds)
     return x,y   
 def scatter_lfmc_vs(var = 'vpd'):
-    arr = gdal_array.LoadFile(os.path.join(dir_data,'mean/lfmc_vpd_ppt_erc_lc.tif'))    
+    arr = gdal_array.LoadFile(os.path.join(dir_data,'mean/lfmc_vpd_ppt_erc_fwi_lc.tif'))    
     ## subsetting for law VPD locations only
 #    arr[0,arr[0,:,:]>25] = np.nan
     x = arr[ind['lfmc'],:,:].flatten()
@@ -154,6 +154,6 @@ def scatter_lfmc_vs(var = 'vpd'):
     
     
 def main():
-    scatter_lfmc_vs('erc')
+    scatter_lfmc_vs(var = 'fwi')
 if __name__ == '__main__':
     main()

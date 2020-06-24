@@ -46,9 +46,10 @@ size_dict = {'small':(df.area<=1),
              'large':(df.area>1)}
 
 fig, ax = plt.subplots(figsize = (3,3))
-df.area.hist(bins = 10, ax = ax)
+df.area.hist(bins = 400, ax = ax)
 ax.set_xlabel('Fire size (km$^2$)')
 ax.set_ylabel('Frequency')
+ax.set_xlim(0,10)
 
 bar = pd.Series([df.loc[size_dict['small']].shape[0],
 df.loc[size_dict['large']].shape[0]],index = ["small","large"])

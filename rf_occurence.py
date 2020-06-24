@@ -71,7 +71,7 @@ def calc_auc_occurence(dfsub, size_dict, clf):
             ndf = ndf.sample(frac=1).reset_index(drop=True)
             ndf.dropna(inplace = True)
     
-            X = ndf.drop('fire', axis = 1)
+            X = ndf.drop(['fire'], axis = 1)
             y = ndf['fire']
             
             try:
@@ -101,7 +101,7 @@ def ensemble_auc(dfsub, size_dict, clf, iters = 100, label = 'All variables'):
     return mean, sd
     
 
-def calc_auc_diff(dfs, size_dict):
+def calc_auc_diff(dfs, size_dict, replace_by_random = False):
     df = dfs.copy()
     allVars = pd.DataFrame(index = sorted(df.landcover.unique()),columns = size_dict.keys())
     onlyClimate = allVars.copy()
@@ -129,7 +129,12 @@ def calc_auc_diff(dfs, size_dict):
     # allVars = calc_auc(df, size_dict, clf)
 
     remove_lfmc = [col for col in df.columns if 'lfmc' in col]
-    onlyClimate, s2 = ensemble_auc(df.drop(remove_lfmc, axis = 1), size_dict, clf)
+    if replace_by_random:
+        ###testing with random numbers instead of LFMC
+        df.loc[:,remove_lfmc] = np.ones(shape = df.loc[:,remove_lfmc].shape)
+        onlyClimate, s2 = ensemble_auc(df, size_dict, clf)
+    else:
+        onlyClimate, s2 = ensemble_auc(df.drop(remove_lfmc, axis = 1), size_dict, clf)
     
     diff = (allVars - onlyClimate).copy().astype(float).round(3)
     onlyClimate.index.name = "only climate"
@@ -172,7 +177,7 @@ def plot_importance(mean, std, onlyClimate):
     ax2.set_title("Large fires")
     
     
-mean, std, onlyClimate = calc_auc_diff(df, SIZE_DICT)
+mean, std, onlyClimate = calc_auc_diff(df, SIZE_DICT, replace_by_random = True)
 
 plot_importance(mean, std, onlyClimate)
 # print(mean)

@@ -19,3 +19,4 @@ for filename in os.listdir(os.path.join(dir_root,"data", "FWI","python_export"))
     gdal.Warp(output_raster,input_raster,dstSRS='EPSG:4326')
     
 input_raster = None
+
