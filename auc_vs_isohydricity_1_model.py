@@ -35,7 +35,7 @@ def assemble_df(trait =  "p50"):
     dfr = dfr[['fwi_t_4_inside','fwi_t_4_outside']]
     df = df.join(dfr)
     
-    dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_500m_with_p50.csv"))
+    dfr = pd.read_csv(os.path.join(dir_data, "fires_2016_2019_with_p50_KL_isohydricity_rootdepth_500m.csv"))
     dfr = dfr[[trait]]
     df = df.join(dfr)
     
@@ -44,13 +44,22 @@ def assemble_df(trait =  "p50"):
     return df
 
 
-def plot_p50_hist(df):
+def plot_hist(df, trait, xlab, bins = 10):
     fig, ax = plt.subplots(figsize = (3,3))
-    df.p50.hist(ax = ax)
-    ax.set_xlabel('P50 (Mpa)')
+    df[trait].hist(ax = ax, bins = bins)
+    ax.set_xlabel(xlab)
     ax.set_ylabel('Frequency')
+    
+    return ax
 
-# plot_p50_hist(df)
+
+def find_nearest(array, value, trait):
+    array = np.asarray(array)
+    if trait=="rootdepth":
+        idx = (np.abs(np.log10(array) - np.log10(value))).argmin()
+    else:
+        idx = (np.abs(array - value)).argmin()
+    return array[idx]
 
 def custom_round(x, base=2):
     return int(base * round(float(x)/base))
@@ -59,10 +68,10 @@ def custom_round(x, base=2):
 def myround(x, base=2):
     return np.ceil(x / float(base)) * base -1
 #%% just lfmc first 
-def auc_by_p50(clf, ndf, kind = 'occurence', step = 2, trait = "p50", trait_min = -12, trait_max = 1):
-    auc = pd.DataFrame(index = [0],columns = np.arange(trait_min,trait_max, step))
+def auc_by_trait(clf, ndf, kind = 'occurence', trait = "p50", sequence = np.arange(-12,1, 2)):
+    auc = pd.DataFrame(index = [0],columns = sequence)
     for p in auc.columns:
-        sub = ndf.loc[ndf[trait].apply(lambda x: custom_round(x, step)).astype(int)==p]
+        sub = ndf.loc[ndf[trait].apply(lambda x: find_nearest(sequence, x, trait))==p]
         if kind == "occurence":
             X = sub.drop(['fire',trait], axis = 1)
             y = sub['fire']
@@ -77,25 +86,25 @@ def auc_by_p50(clf, ndf, kind = 'occurence', step = 2, trait = "p50", trait_min 
     return auc
 
 
-def calc_auc_size(dfsub, clf):
+def calc_auc_size(dfsub, clf, trait = "p50",sequence = np.arange(-12,1, 2)):
     ndf = dfsub.copy()
     ndf = ndf.sample(frac=1).reset_index(drop=True)
     ndf.dropna(inplace = True)
     # print(ndf.columns)
-    X = ndf.drop(['size','p50'], axis = 1)
+    X = ndf.drop(['size',trait], axis = 1)
     y = ndf['size']
     # print(y.mean())
     # try:
     clf.fit(X, y)
         # rfc_disp = plot_roc_curve(clf, X, y, ax=ax,label = lc,color = color_dict[lc])
-    auc = auc_by_p50(clf, ndf, kind = "size")
+    auc = auc_by_trait(clf, ndf, kind = "size", trait = trait,sequence = np.arange(-12,1, 2))
         # print(roc_auc_score(y, clf.predict(X)))
     # except: 
         # print("Could not fit RF")
     # print(auc)        
     return auc
 
-def calc_auc_occurence(dfsub,  clf, trait = "p50"):
+def calc_auc_occurence(dfsub,  clf, trait = "p50",sequence =np.arange(-12,1, 2)):
     df = dfsub.copy()
     
     ndf = pd.DataFrame()
@@ -115,16 +124,16 @@ def calc_auc_occurence(dfsub,  clf, trait = "p50"):
     X = ndf.drop(['fire',trait], axis = 1)
     y = ndf['fire']
     
-    try:
-        clf.fit(X, y)
+    # try:
+    clf.fit(X, y)
         # rfc_disp = plot_roc_curve(clf, X, y, ax=ax,label = lc,color = color_dict[lc])
-        auc = auc_by_p50(clf, ndf, kind = "occurence")
-    except: 
-        print("Could not fit RF")
+    auc = auc_by_trait(clf, ndf, kind = "occurence", trait = trait,sequence = sequence)
+    # except: 
+        # print("Could not fit RF")
         
     return auc
 
-def ensemble_auc(dfsub, clf, iters = 5, kind = "occurence"):
+def ensemble_auc(dfsub, clf, iters = 100, kind = "occurence", trait = "p50",sequence =np.arange(-12,1, 2)):
     clf.random_state = 0
     # dummy = calc_auc_occurence(dfsub, category_dict, clf)
     # aucs = np.expand_dims(dummy.values, axis = 2)
@@ -132,14 +141,14 @@ def ensemble_auc(dfsub, clf, iters = 5, kind = "occurence"):
         clf.random_state = itr
         if itr ==1:
             if kind == 'occurence':
-                auc = calc_auc_occurence(dfsub, clf)
+                auc = calc_auc_occurence(dfsub, clf, trait = trait,sequence = sequence)
             else:
-                auc = calc_auc_size(dfsub, clf)
+                auc = calc_auc_size(dfsub, clf, trait = trait,sequence = sequence)
         else:
             if kind == 'occurence':
-                auc = auc.append(calc_auc_occurence(dfsub, clf)).reset_index(drop=True)
+                auc = auc.append(calc_auc_occurence(dfsub, clf, trait = trait,sequence = sequence)).reset_index(drop=True)
             else: 
-                auc = auc.append(calc_auc_size(dfsub, clf)).reset_index(drop=True)
+                auc = auc.append(calc_auc_size(dfsub, clf, trait = trait,sequence = sequence)).reset_index(drop=True)
         # aucs = np.append(aucs,auc, axis = 2)
     # print("aucs ready")
     # dummy.loc[:,:] = np.nanmean(aucs.astype(float), axis = 2)
@@ -149,7 +158,7 @@ def ensemble_auc(dfsub, clf, iters = 5, kind = "occurence"):
 
     return auc    
 
-def calc_auc_diff(dfs, replace_by_random = False, kind = "occurence",trait = "p50"):
+def calc_auc_diff(dfs, replace_by_random = False, kind = "occurence",trait = "p50",sequence =np.arange(-12,1, 2), iters = 100):
     df = dfs.copy()
     # allVars = pd.DataFrame(index = [0],columns = category_dict.keys())
     # onlyClimate = allVars.copy()
@@ -179,10 +188,10 @@ def calc_auc_diff(dfs, replace_by_random = False, kind = "occurence",trait = "p5
     # clf = RandomForestClassifier(max_depth=15, min_samples_leaf = 5, random_state=0, oob_score = True,n_estimators = 50)
     
     if kind=='occurence':
-        clf = RandomForestClassifier(max_depth=6, random_state=0, oob_score = True,n_estimators = 20)
+        clf = RandomForestClassifier(max_depth=7, random_state=0, oob_score = True,n_estimators = 40)
     else:
         clf = RandomForestClassifier(max_depth=10, min_samples_leaf = 1, random_state=0, oob_score = True,n_estimators = 20)
-    allVars = ensemble_auc(df, clf, kind = kind)
+    allVars = ensemble_auc(df, clf, kind = kind, trait = trait, sequence = sequence, iters = iters)
     
     
     # allVars = calc_auc(df, size_dict, clf)
@@ -191,9 +200,9 @@ def calc_auc_diff(dfs, replace_by_random = False, kind = "occurence",trait = "p5
     if replace_by_random:
         ###testing with random numbers instead of LFMC
         df.loc[:,remove_lfmc] = np.ones(shape = df.loc[:,remove_lfmc].shape)
-        onlyClimate, s2 = ensemble_auc(df, category_dict, clf, kind = kind)
+        onlyClimate, s2 = ensemble_auc(df, clf, kind = kind, trait = trait, sequence = sequence)
     else:
-        onlyClimate = ensemble_auc(df.drop(remove_lfmc, axis = 1), clf, kind = kind)
+        onlyClimate = ensemble_auc(df.drop(remove_lfmc, axis = 1), clf, kind = kind, trait = trait, sequence = sequence)
     
     diff = (allVars - onlyClimate).copy().astype(float).round(3)
     onlyClimate.index.name = "only climate"
@@ -209,7 +218,7 @@ def calc_auc_diff(dfs, replace_by_random = False, kind = "occurence",trait = "p5
     
     return allVars, onlyClimate
 
-def plot_importance(allVars, onlyClimate, xlab = 'P50 (MPA)'):
+def plot_importance(allVars, onlyClimate, xlab = 'P50 (MPA)', xlim = [1,-15], xticks = [0,-5,-10,-15]):
     y = (allVars - onlyClimate)/onlyClimate*100
     mean = y.mean()
     sd = y.std()
@@ -222,14 +231,40 @@ def plot_importance(allVars, onlyClimate, xlab = 'P50 (MPA)'):
 
     ax.set_ylabel("LFMC Value (%)")
     ax.set_xlabel(xlab)
-    # ax.set_xlim(1,-15)
-    # ax.set_xticks([0,-5,-10,-15])
+    ax.set_xlim(*xlim)
+    ax.set_xticks(xticks)
     # ax1.set_xlim(0.5,1)
     # ax1.set_title("Small fires")
+    
+    return ax
 
-df = assemble_df()
-allVars, onlyClimate = calc_auc_diff(df, replace_by_random = False, kind = 'occurence')
-plot_importance(allVars, onlyClimate)
+ITERS = 100
+trait = "isohydricity"
+df = assemble_df(trait)
+df = df.loc[df.isohydricity>=0]
+plot_hist(df, trait = trait,xlab = "$\sigma$")
+allVars, onlyClimate = calc_auc_diff(df, replace_by_random = False, 
+                                     kind = 'occurence', 
+                                     trait = trait, 
+                                     iters = ITERS, 
+                                     sequence = np.linspace(-0.,1.0,5))
+plot_importance(allVars, onlyClimate, 
+                xlab = "$\sigma$", 
+                xlim = [-0.75,1.25], 
+                xticks = np.linspace(-0.5,1.0,4))
+
+# trait = "root_depth" #need to remove underscore because _inside _outside vars are filtered based on _
+# df = assemble_df(trait)
+# df = df.rename(columns = {'root_depth':'rootdepth'})
+# trait = "rootdepth"
+# ax = plot_hist(df, trait = trait, xlab = "Rooting depth (m)", bins = 100)
+# ax.set_xscale('log')
+
+# allVars, onlyClimate = calc_auc_diff(df, replace_by_random = False, kind = 'occurence', trait = trait, sequence = np.array([0.01,0.1,1,10,100]))
+# ax = plot_importance(allVars, onlyClimate, xlab = "Rooting depth(m)", xlim = [0.0005,200], xticks = [0.001,0.01,0.1,1,10,100] )
+# ax.set_xscale('log')
+# ax.set_xticks([0.001,0.01,0.1,1,10,100] )
+
 # plot_importance(mean, std, onlyClimate, replace_by_random = False)
 # print(mean)
 # print(std)
