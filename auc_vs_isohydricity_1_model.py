@@ -12,7 +12,7 @@ import seaborn as sns
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import mannwhitneyu
+from scipy.stats import mannwhitneyu, pearsonr
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
 from sklearn.metrics import plot_roc_curve, roc_auc_score
@@ -20,12 +20,13 @@ from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
 
 
-
+color_dict['All forests'] = 'k'
 
 sns.set(style='ticks',font_scale = 0.9)
 
 def assemble_df(trait =  "p50"):
     df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_500m_variogram.csv"))
+    # df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_500m_variogram_6_jul_2020.csv"))
     
     dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_extra_lfmc_vars_500m_variogram.csv"))
     dfr = dfr[['lfmc_t_1_seasonal_mean_inside','lfmc_t_1_seasonal_mean_outside', 'lfmc_t_2_inside', 'lfmc_t_2_outside']]
@@ -75,7 +76,10 @@ def auc_by_trait(clf, ndf, kind = 'occurence', trait = "p50", sequence = np.aran
         if kind == "occurence":
             X = sub.drop(['fire',trait], axis = 1)
             y = sub['fire']
-            auc.loc[0,p] = roc_auc_score(y, clf.predict(X))
+            try:
+                auc.loc[0,p] = roc_auc_score(y, clf.predict(X))
+            except:
+                auc.loc[0,p] = np.nan
         else:
             X = sub.drop(['size',trait], axis = 1)
             y = sub['size']
@@ -188,7 +192,7 @@ def calc_auc_diff(dfs, replace_by_random = False, kind = "occurence",trait = "p5
     # clf = RandomForestClassifier(max_depth=15, min_samples_leaf = 5, random_state=0, oob_score = True,n_estimators = 50)
     
     if kind=='occurence':
-        clf = RandomForestClassifier(max_depth=7, random_state=0, oob_score = True,n_estimators = 40)
+        clf = RandomForestClassifier(max_depth=6, random_state=0, oob_score = True,n_estimators = 40)
     else:
         clf = RandomForestClassifier(max_depth=10, min_samples_leaf = 1, random_state=0, oob_score = True,n_estimators = 20)
     allVars = ensemble_auc(df, clf, kind = kind, trait = trait, sequence = sequence, iters = iters)
@@ -218,15 +222,15 @@ def calc_auc_diff(dfs, replace_by_random = False, kind = "occurence",trait = "p5
     
     return allVars, onlyClimate
 
-def plot_importance(allVars, onlyClimate, xlab = 'P50 (MPA)', xlim = [1,-15], xticks = [0,-5,-10,-15]):
-    y = (allVars - onlyClimate)/onlyClimate*100
+def plot_importance(allVars, onlyClimate, xlab = 'P50 (MPA)', xlim = [1,-15], xticks = [0,-5,-10,-15], lc = None, n = None):
+    y = (allVars - onlyClimate)*100
     mean = y.mean()
     sd = y.std()
     
     fig, ax= plt.subplots(figsize = (3,3))
-    ax.plot(mean,'ko-', markeredgecolor = "grey")
+    ax.plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
     ax.errorbar(x = mean.index, y = mean, yerr = sd, fmt = 'o', color = "grey", capsize = 2, zorder = -1)
-    ax.scatter(x = mean.index, y = mean,marker = 'o', edgecolor = "grey")
+    ax.scatter(x = mean.index, y = mean,marker = 'o', edgecolor = "grey",color = color_dict[lc])
 
 
     ax.set_ylabel("LFMC Value (%)")
@@ -234,37 +238,96 @@ def plot_importance(allVars, onlyClimate, xlab = 'P50 (MPA)', xlim = [1,-15], xt
     ax.set_xlim(*xlim)
     ax.set_xticks(xticks)
     # ax1.set_xlim(0.5,1)
-    # ax1.set_title("Small fires")
+    ax.set_title("%s, N = %d"%(lc, n))
     
     return ax
 
-ITERS = 100
-trait = "isohydricity"
-df = assemble_df(trait)
-df = df.loc[df.isohydricity>=0]
-plot_hist(df, trait = trait,xlab = "$\sigma$")
-allVars, onlyClimate = calc_auc_diff(df, replace_by_random = False, 
-                                     kind = 'occurence', 
-                                     trait = trait, 
-                                     iters = ITERS, 
-                                     sequence = np.linspace(-0.,1.0,5))
-plot_importance(allVars, onlyClimate, 
-                xlab = "$\sigma$", 
-                xlim = [-0.75,1.25], 
-                xticks = np.linspace(-0.5,1.0,4))
-
-# trait = "root_depth" #need to remove underscore because _inside _outside vars are filtered based on _
+#%%
+# ITERS = 100
+# trait = "isohydricity"
 # df = assemble_df(trait)
-# df = df.rename(columns = {'root_depth':'rootdepth'})
-# trait = "rootdepth"
-# ax = plot_hist(df, trait = trait, xlab = "Rooting depth (m)", bins = 100)
-# ax.set_xscale('log')
+# # df = df.loc[df.isohydricity>=0]
+# plot_hist(df, trait = trait,xlab = "$\sigma$")
+# corrs = pd.DataFrame(index = df.landcover.unique(), columns = ["r", "p"])
+# for lc in df.landcover.unique():
+#     dfsub = df.loc[df.landcover==lc].copy()
+#     allVars, onlyClimate = calc_auc_diff(dfsub, replace_by_random = False, 
+#                                           kind = 'occurence', 
+#                                           trait = trait, 
+#                                           iters = ITERS, 
+#                                           sequence = np.linspace(-0.,1.0,5))
+#     plot_importance(allVars, onlyClimate, 
+#                     xlab = "$\sigma$", 
+#                     xlim = [-0.25,1.25], 
+#                     xticks = np.linspace(-0.,1.0,5),
+#                     lc = lc, n = dfsub.dropna().shape[0])
+#     corrs.loc[lc] = pearsonr(np.repeat(allVars.columns.values, allVars.shape[0]), 
+#                              (allVars - onlyClimate).values.flatten(order = "F").astype(float))
+# print(corrs)
 
-# allVars, onlyClimate = calc_auc_diff(df, replace_by_random = False, kind = 'occurence', trait = trait, sequence = np.array([0.01,0.1,1,10,100]))
-# ax = plot_importance(allVars, onlyClimate, xlab = "Rooting depth(m)", xlim = [0.0005,200], xticks = [0.001,0.01,0.1,1,10,100] )
-# ax.set_xscale('log')
-# ax.set_xticks([0.001,0.01,0.1,1,10,100] )
+#%%
+# ITERS = 100
+# trait = "p50"
+# df = assemble_df(trait)
+# # df = df.loc[df.isohydricity>=0]
+# plot_hist(df, trait = trait,xlab = "P50 (Mpa)")
+# corrs = pd.DataFrame(index = df.landcover.unique(), columns = ["r", "p"])
+# for lc in ['Closed broadleaf\ndeciduous', 'Closed needleleaf\nevergreen','Mixed forest']:
+#     dfsub = df.loc[df.landcover==lc].copy()
+#     allVars, onlyClimate = calc_auc_diff(dfsub, replace_by_random = False, 
+#                                           kind = 'occurence', 
+#                                           trait = trait, 
+#                                           iters = ITERS, 
+#                                           sequence = [-13,-9,-7,-5,-3,-1])
+#     plot_importance(allVars, onlyClimate, 
+#                     xlab = "P50 (Mpa)", 
+#                     xlim = [-14,0], 
+#                     xticks = np.linspace(-13,-1,7),
+#                     lc = lc, n = dfsub.dropna().shape[0])
+#     corrs.loc[lc] = pearsonr(np.repeat(allVars.columns.values, allVars.shape[0]), 
+#                               (allVars - onlyClimate).values.flatten(order = "F").astype(float))
+# print(corrs)
 
-# plot_importance(mean, std, onlyClimate, replace_by_random = False)
-# print(mean)
-# print(std)
+
+# lc = "All forests"    
+# dfsub = df.loc[df.landcover.isin(['Closed broadleaf\ndeciduous', 'Closed needleleaf\nevergreen','Mixed forest'])].copy()
+# allVars, onlyClimate = calc_auc_diff(dfsub, replace_by_random = False, 
+#                                       kind = 'occurence', 
+#                                       trait = trait, 
+#                                       iters = ITERS, 
+#                                       sequence = [-13,-9,-7,-5,-3,-1])
+# plot_importance(allVars, onlyClimate, 
+#                 xlab = "P50 (Mpa)", 
+#                 xlim = [-14,0], 
+#                 xticks = np.linspace(-13,-1,7),
+#                 lc = lc)
+
+
+#%%
+ITERS = 100
+trait = "root_depth" #need to remove underscore because _inside _outside vars are filtered based on _
+df = assemble_df(trait)
+df = df.rename(columns = {'root_depth':'rootdepth'})
+trait = "rootdepth"
+ax = plot_hist(df, trait = trait, xlab = "Rooting depth (m)", bins = 100)
+ax.set_xscale('log')
+corrs = pd.DataFrame(index = df.landcover.unique(), columns = ["r", "p"])
+for lc in df.landcover.unique():
+    dfsub = df.loc[df.landcover==lc].copy()
+    allVars, onlyClimate = calc_auc_diff(dfsub, replace_by_random = False, 
+                                          kind = 'occurence', 
+                                          trait = trait, 
+                                          iters = ITERS, 
+                                          sequence =np.array([0.01,0.1,1,10]))
+    ax = plot_importance(allVars, onlyClimate, 
+                    xlab = "Rooting depth(m)", 
+                      xlim = [0.0005,20], 
+                    xticks = [0.001,0.01,0.1,1,10],
+                    lc = lc, n = dfsub.dropna().shape[0])
+    ax.set_xscale('log')
+    
+    corrs.loc[lc] = pearsonr(np.log10(np.repeat(allVars.columns.values, allVars.shape[0])), 
+                              (allVars - onlyClimate).values.flatten(order = "F").astype(float))
+print(corrs)
+
+

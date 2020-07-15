@@ -26,6 +26,8 @@ short_lc = {'enf':'Closed needleleaf\nevergreen',
 
 color_dict = {'Closed broadleaf\ndeciduous':'darkorange',
               'Closed needleleaf\nevergreen': 'forestgreen',
+              'Closed broadleaf deciduous':'darkorange',
+              'Closed needleleaf evergreen': 'forestgreen',
               'Mixed forest':'darkslategrey',
               'Shrub/grassland' :'y' ,
               'Shrubland':'tan',
