@@ -9,7 +9,7 @@ Created on Sun Jul 19 18:12:17 2020
 
 #! /usr/bin/env python3.5
 # defineterm.py
-
+import os
 import requests
 from bs4 import BeautifulSoup
 import sys
@@ -17,7 +17,7 @@ import html
 import codecs
 import pandas as pd
 from init import dir_data, dir_root
-import os
+
 
 
 # searchterm = ' '.join(sys.argv[1:])
