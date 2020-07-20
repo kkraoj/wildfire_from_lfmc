@@ -11,11 +11,11 @@ Created on Sun Jul 19 18:12:17 2020
 # defineterm.py
 import os
 import requests
-from bs4 import BeautifulSoup
 import sys
 import html
 import codecs
 import pandas as pd
+from bs4 import BeautifulSoup
 from init import dir_data, dir_root
 
 
