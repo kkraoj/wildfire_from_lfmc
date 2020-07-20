@@ -25,19 +25,22 @@ import statsmodels.api as sm
 sns.set(style='ticks',font_scale = 0.9)
 
 def assemble_df():
-    df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_500m_variogram_6_jul_2020.csv"))
+    # df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_500m_variogram_6_jul_2020.csv"))
+    df = pd.read_csv(os.path.join(dir_data, "fire_collection_median_with_climate_500m_variogram.csv"))
     
-    # dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_extra_lfmc_vars_500m_variogram.csv"))
-    # dfr = dfr[['lfmc_t_1_seasonal_mean_inside','lfmc_t_1_seasonal_mean_outside', 'lfmc_t_2_inside', 'lfmc_t_2_outside']]
-    # df = df.join(dfr)
+    dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_extra_lfmc_vars_500m_variogram.csv"))
+    dfr = dfr[['lfmc_t_1_seasonal_mean_inside','lfmc_t_1_seasonal_mean_outside', 'lfmc_t_2_inside', 'lfmc_t_2_outside']]
+    df = df.join(dfr)
     
-    # dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_fwi_500m_variogram.csv"))
-    # dfr = dfr[['fwi_t_4_inside','fwi_t_4_outside']]
-    # df = df.join(dfr)
+    dfr = pd.read_csv(os.path.join(dir_data, "fire_collection_median_fwi_500m_variogram.csv"))
+    dfr = dfr[['fwi_t_4_inside','fwi_t_4_outside']]
+    df = df.join(dfr)
     
     df = df.loc[df.landcover.isin(lc_dict.keys())]
     df['landcover'] = df.landcover.map(lc_dict)
     df = df.loc[df.BurnDate>=150]
+    drop_erc = [col for col in df.columns if "erc" in col]
+    df.drop(drop_erc, axis = 1, inplace = True)
     return df
 
 df = assemble_df()
@@ -122,6 +125,7 @@ def calc_auc_diff(dfs, size_dict, replace_by_random = False):
     ###testing with random numbers instead of LFMC
     # df.loc[:,remove_lfmc] = np.zeros(shape = df.loc[:,remove_lfmc].shape)
     # clf = RandomForestClassifier(max_depth=15, min_samples_leaf = 5, random_state=0, oob_score = True,n_estimators = 50)
+    # clf = RandomForestClassifier(max_depth=6, random_state=0, oob_score = True,n_estimators = 40)
     clf = RandomForestClassifier(max_depth=6, random_state=0, oob_score = True,n_estimators = 40)
     # clf = RandomForestClassifier(min_samples_leaf = 10, random_state=0, oob_score = True,n_estimators = 40)
     allVars, s1 = ensemble_auc(df, size_dict, clf)
@@ -182,6 +186,8 @@ def overlap_importance_trait(mean, std):
     new_index =  list(trait.index)
     new_index = [x.replace("\\n"," ") for x in new_index]
     trait.index= new_index
+    traitSd = pd.read_excel(os.path.join(dir_root, "working.xlsx"), sheet_name = "std_traits", index_col = "landcover", dtype = {'landcover':str})
+    traitSd.index= new_index
     # mean.index = mean.index.astype(str)
     mean.index.name = "landcover"
     colors = [color_dict[lc] for lc in mean.index]
@@ -190,33 +196,45 @@ def overlap_importance_trait(mean, std):
     std.index.name = "landcover"
     std.index = std.index.str.replace("\n"," ")
     
-    fig,  axs = plt.subplots(3, 2, figsize = (6,9), sharey = True)
+    sns.set(style='ticks',font_scale = 1.1, rc = {"xtick.direction": "in","ytick.direction": "in"})
+    fig,  axs = plt.subplots(2, 3, figsize = (9,6), sharey = "row",sharex = "col")
     ctr = 0
     mean = trait.join(mean)
     std = trait.join(std)
+    ecolor = "lightgrey"
+    s = 100
     for fire_size in ['small','large']:
 
-        axs[0,ctr].errorbar(x = mean['p50'], y = mean[fire_size], yerr = std[fire_size], fmt = 'o', color = "grey", capsize = 2, zorder = -1)
-        axs[0,ctr].scatter(x = mean['p50'], y = mean[fire_size],marker = 'o', edgecolor = "grey",color = colors)
+        axs[ctr,0].errorbar(x = mean['p50'], y = mean[fire_size], yerr = std[fire_size], xerr = traitSd['p50'], fmt = 'o', color = ecolor, capsize = 2, zorder = -1)
+        axs[ctr,0].scatter(x = mean['p50'], y = mean[fire_size],marker = 'o', edgecolor = ecolor,color = colors, s = s)
     # axs[0,ctr].plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
-        axs[0,0].set_ylabel("LFMC Importance (%)")
-        axs[0,ctr].set_xlabel('P50 (Mpa)')
-        axs[0,ctr].set_xlim(-3, -6)
         
-        axs[1,ctr].errorbar(x = mean['sigma'], y = mean[fire_size], yerr = std[fire_size], fmt = 'o', color = "grey", capsize = 2, zorder = -1)
-        axs[1,ctr].scatter(x = mean['sigma'], y = mean[fire_size],marker = 'o', edgecolor = "grey",color = colors)
-    # axs[0,ctr].plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
-        axs[1,0].set_ylabel("LFMC Importance (%)")
-        axs[1,ctr].set_xlabel('$\sigma$')
-        axs[1,ctr].set_xlim(0.8,0.4)
+        # axs[ctr,0].set_xlabel('P50 (Mpa)')
+        axs[ctr,0].set_xlim(-3, -6)
         
-        axs[2,ctr].errorbar(x = mean['rootDepth'], y = mean[fire_size], yerr = std[fire_size], fmt = 'o', color = "grey", capsize = 2, zorder = -1)
-        axs[2,ctr].scatter(x = mean['rootDepth'], y = mean[fire_size],marker = 'o', edgecolor = "grey",color = colors)
+        axs[ctr,1].errorbar(x = mean['sigma'], y = mean[fire_size], yerr = std[fire_size], xerr = traitSd['sigma'], fmt = 'o', color = ecolor, capsize = 2, zorder = -1)
+        axs[ctr,1].scatter(x = mean['sigma'], y = mean[fire_size],marker = 'o', edgecolor = ecolor,color = colors,s = s)
     # axs[0,ctr].plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
-        axs[2,0].set_ylabel("LFMC Importance (%)")
-        axs[2,ctr].set_xlabel('Rooting depth (m)')
-        axs[2,ctr].set_xlim(2.5,5.5)
+        
+        # axs[ctr,1].set_xlabel('$\sigma$')
+        axs[ctr,1].set_xlim(0.7,0.5)
+        
+        axs[ctr,2].errorbar(x = mean['rootDepth'], y = mean[fire_size], yerr = std[fire_size], xerr = traitSd['rootDepth'], fmt = 'o', color = ecolor, capsize = 2, zorder = -1)
+        axs[ctr,2].scatter(x = mean['rootDepth'], y = mean[fire_size],marker = 'o', edgecolor =ecolor,color = colors,s = s)
+    # axs[0,ctr].plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
+        # axs[2,0].set_ylabel("LFMC Importance")
+        # axs[2,ctr].set_xlabel('Rooting depth (m)')
+        axs[ctr,2].set_xlim(2.5,5.5)
+        
         ctr+=1
+    # axs[0,0].set_xticklabels(None)
+    axs[0,0].set_ylabel("LFMC Importance")
+    axs[1,0].set_ylabel("LFMC Importance")
+    axs[1,0].set_xlabel('P50 (Mpa)')
+    axs[1,1].set_xlabel('Anisohydricity')
+    axs[1, 2].set_xlabel('Rooting depth (m)')
+    # axs[0,0].set_title("Small fires")
+    # axs[0,1].set_title("Large fires")
     # ax.set_xticks(xticks)
     # ax1.set_xlim(0.5,1)
     # ax.set_title("%s, N = %d"%(lc, n))
@@ -228,6 +246,6 @@ mean, std, onlyClimate = calc_auc_diff(df, SIZE_DICT, replace_by_random = False)
 
 plot_importance(mean, std, onlyClimate)
 
-axs = overlap_importance_trait(mean, std)
+# axs = overlap_importance_trait(mean, std)
 # print(mean)
 # print(std)
