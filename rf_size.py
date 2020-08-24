@@ -125,9 +125,9 @@ def calc_auc_diff(dfs, replace_by_random = False):
     if replace_by_random:
         ###testing with random numbers instead of LFMC
         df.loc[:,remove_lfmc] = np.zeros(shape = df.loc[:,remove_lfmc].shape)
-        onlyClimate, s2 = ensemble_auc(df, size_dict, clf)
+        onlyClimate, s2 = ensemble_auc(df, clf)
     else:
-        onlyClimate, s2 = ensemble_auc(df.drop(remove_lfmc, axis = 1), size_dict, clf)
+        onlyClimate, s2 = ensemble_auc(df.drop(remove_lfmc, axis = 1), clf)
     
     diff = (allVars - onlyClimate).copy().astype(float).round(3)
     onlyClimate.index.name = "only climate"
@@ -158,9 +158,78 @@ def plot_importance(mean, std, onlyClimate):
     
     ax1.set_xlim(0.5,1)
     # ax1.set_title("Small fires")
+
+
+  
+def overlap_importance_trait(mean_, std_):
+    mean = mean_.copy()
+    std = std_.copy()
+    trait = pd.read_excel(os.path.join(dir_root, "working.xlsx"), sheet_name = "mean_traits", index_col = "landcover", dtype = {'landcover':str})
+    new_index =  list(trait.index)
+    new_index = [x.replace("\\n"," ") for x in new_index]
+    trait.index= new_index
+    traitSd = pd.read_excel(os.path.join(dir_root, "working.xlsx"), sheet_name = "std_traits", index_col = "landcover", dtype = {'landcover':str})
+    traitSd.index= new_index
+    # mean.index = mean.index.astype(str)
+    mean.index.name = "landcover"
+    colors = [color_dict[lc] for lc in mean.index]
+    mean.index = mean.index.str.replace("\n"," ")
     
+    std.index.name = "landcover"
+    std.index = std.index.str.replace("\n"," ")
+    
+    mean = trait.join(mean)
+    std = trait.join(std)
+        
+    
+    sns.set(style='ticks',font_scale = 1.1, rc = {"xtick.direction": "in","ytick.direction": "in"})
+    fig,  axs = plt.subplots(1, 3, figsize = (9,3), sharey = "row",sharex = "col")
+    ctr = 0
+    
+    ecolor = "lightgrey"
+    s = 100
+    
+    fire_size = "auc"
+    axs[0].errorbar(x = mean['p50'], y = mean[fire_size], yerr = std[fire_size], xerr = traitSd['p50'], fmt = 'o', color = ecolor, capsize = 2, zorder = -1)
+    axs[0].scatter(x = mean['p50'], y = mean[fire_size],marker = 'o', edgecolor = ecolor,color = colors, s = s)
+    # axs[0,ctr].plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
+    
+    # axs[ctr,0].set_xlabel('P50 (Mpa)')
+    axs[0].set_xlim(-3, -6)
+    
+    axs[1].errorbar(x = mean['sigma'], y = mean[fire_size], yerr = std[fire_size], xerr = traitSd['sigma'], fmt = 'o', color = ecolor, capsize = 2, zorder = -1)
+    axs[1].scatter(x = mean['sigma'], y = mean[fire_size],marker = 'o', edgecolor = ecolor,color = colors,s = s)
+    # axs[0,ctr].plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
+    
+    # axs[ctr,1].set_xlabel('$\sigma$')
+    axs[1].set_xlim(0.7,0.5)
+    
+    axs[2].errorbar(x = mean['rootDepth'], y = mean[fire_size], yerr = std[fire_size], xerr = traitSd['rootDepth'], fmt = 'o', color = ecolor, capsize = 2, zorder = -1)
+    axs[2].scatter(x = mean['rootDepth'], y = mean[fire_size],marker = 'o', edgecolor =ecolor,color = colors,s = s)
+    # axs[0,ctr].plot(mean,'o-',color = color_dict[lc], markeredgecolor = "grey")
+    # axs[2,0].set_ylabel("LFMC Importance")
+    # axs[2,ctr].set_xlabel('Rooting depth (m)')
+    axs[2].set_xlim(2.5,5.5)
+
+    # axs[0,0].set_xticklabels(None)
+    axs[0].set_ylabel("LFMC Importance")
+    axs[0].set_ylabel("LFMC Importance")
+    axs[0].set_xlabel('P50 (Mpa)')
+    axs[1].set_xlabel('Anisohydricity')
+    axs[2].set_xlabel('Rooting depth (m)')
+    # axs[0,0].set_title("Small fires")
+    # axs[0,1].set_title("Large fires")
+    # ax.set_xticks(xticks)
+    # ax1.set_xlim(0.5,1)
+    # ax.set_title("%s, N = %d"%(lc, n))
+    
+    return axs
+
+
 mean, std, onlyClimate = calc_auc_diff(df)
 
-plot_importance(mean, std, onlyClimate, replace_by_random = False)
+plot_importance(mean, std, onlyClimate)
+
+axs = overlap_importance_trait(mean, std)
 # print(mean)
 # print(std)

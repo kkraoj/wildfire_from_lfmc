@@ -13,10 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.colors import ListedColormap
 
-import cartopy.crs as ccrs
 from osgeo import gdal, osr, gdal_array
-from cartopy.feature import ShapelyFeature 
-from cartopy.io.shapereader import Reader
 
 dir_data = "D:\Krishna\projects\wildfire_from_lfmc\data"
 

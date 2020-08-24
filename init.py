@@ -22,7 +22,13 @@ short_lc = {'enf':'Closed needleleaf\nevergreen',
             'bdf':'Closed broadleaf\ndeciduous',
             'mixed':'Mixed forest',
             'shrub':'Shrubland',
-            'grass': 'Grassland'}
+            'grass': 'Grassland',
+            'ENF':'Closed needleleaf\nevergreen',
+            'DBF':'Closed broadleaf\ndeciduous',
+            'mixed':'Mixed forest',
+            'SHB':'Shrubland',
+            'GRA': 'Grassland'
+            }
 
 color_dict = {'Closed broadleaf\ndeciduous':'darkorange',
               'Closed needleleaf\nevergreen': 'forestgreen',
