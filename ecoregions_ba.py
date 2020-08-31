@@ -41,16 +41,23 @@ def discrete_matshow(plot, data,cax):
     #tell the colorbar to tick at integers
     fig.colorbar(plot, cax= cax,ticks=np.arange(np.min(data),np.max(data)+1))
 
-#%% load and combine
-df = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_2001_2019_no_geo.csv"))
-dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_plantClimate.csv"))
-df = df.join(dfr['plantClimateSensitivity'])
-dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_vpd_ndvi_2001_2019_no_geo.csv"))
-cols = [col for col in dfr.columns if 'vpd' in col]# select vpd
-cols = cols + ['ndviMean']
-dfr = dfr[cols]
-df = df.join(dfr[cols])
+def addMeanVpd(df):
+    cols = [col for col in df.columns if 'vpd' in col]# select vpd
+    df['aridityMean'] = df[cols].mean(axis =1)
+    
+    return df
 
+#%% load and combine
+# df = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_2001_2019_no_geo.csv"))
+# dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_plantClimate.csv"))
+# df = df.join(dfr['plantClimateSensitivity'])
+# dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_vpd_ndvi_2001_2019_no_geo.csv"))
+# cols = [col for col in dfr.columns if 'vpd' in col]# select vpd
+# cols = cols + ['ndviMean']
+# dfr = dfr[cols]
+# df = df.join(dfr[cols])
+df= pd.read_csv(os.path.join(dir_data, "arr_ecoregions_fire_climate_plant.csv"))
+df = addMeanVpd(df)
 df.shape
 df.head()
 
@@ -85,7 +92,7 @@ minscore = np.inf
 
 ctr = 0
 
-master = pd.DataFrame(columns = ['slope', 'score','sigma','ndvi'])
+master = pd.DataFrame()
 for index, row in df.iterrows():
     x = row[[col for col in row.index if var in col]]
     y = row[[col for col in row.index if "ba" in col]]*0.25 ## because actual number are just 500m wide pixels
@@ -121,56 +128,127 @@ for index, row in df.iterrows():
         
         plt.show()
     
-    appendRow = pd.Series(index = ['slope', 'score','sigma','ndvi'], 
-                          data = [slope, score, row['plantClimateSensitivity'], row['ndviMean']])
+    appendRow = pd.Series(index = ['slope', 'score','plantClimateR2','plantClimateCoefSum','plantClimateCoefDiff','ndvi','vpd'], 
+                          data = [slope, score, row['plantClimateR2'], row['plantClimateCoefSum'], row['plantClimateCoefDiff'], row['ndviMean'], row['aridityMean']])
     master = master.append(appendRow, ignore_index = True)
 
 
 master.head()
 master.shape
-# master = master.loc[master.ndvi>=0.4]
+master = master.loc[master.ndvi>=0.4]
+
+# fig, ax = plt.subplots(figsize = (3,3))
+# plot = ax.scatter(master.sigma, master.score, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+# sns.regplot(x = 'sigma', y = 'score', data = master, ax = ax, scatter = False)
+# plt.colorbar(plot)
+# ax.set_xlabel(r"$\frac{dLFMC^\prime}{dVPD^\prime_6}$")
+# # ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
+# ax.set_ylabel(r"$R^2(log(BA),VPD$")
+
+# ax.set_xlim(0,1)
+# ax.set_ylim(bottom = -0.05)
+# plt.show()
+
+# fig, ax = plt.subplots(figsize = (3,3))
+# plot = ax.scatter(master.sigma, master.slope, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+# sns.regplot(x = 'sigma', y = 'slope', data = master, ax = ax, scatter = False)
+# ax.set_xlabel(r"$\frac{dLFMC^\prime}{dVPD^\prime_6}$")
+# ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
+# # ax.set_ylabel(r"$R^2(log(BA),VPD$")
+# plt.colorbar(plot)
+
+# ax.set_xlim(0,1)
+# # ax.set_ylim(bottom = -0.05)
+# plt.show()
+
+
+# fig, ax = plt.subplots(figsize = (3,3))
+
+# sns.regplot(x = 'ndvi', y = 'slope', data = master, ax = ax)
+# ax.set_xlabel(r"Mean NDVI")
+# ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
+# # ax.set_ylabel(r"$R^2(log(BA),VPD$")
+# # ax.set_xlim(0,1)
+# # ax.set_ylim(bottom = -0.05)
+# plt.show()
 
 fig, ax = plt.subplots(figsize = (3,3))
-plot = ax.scatter(master.sigma, master.score, c = master.ndvi,vmin = 0.2, vmax = 0.8)
-sns.regplot(x = 'sigma', y = 'score', data = master, ax = ax, scatter = False)
+
+sns.regplot(x = 'vpd', y = 'slope', data = master, ax = ax)
+ax.set_xlabel(r"Mean VPD")
+ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
+plt.show()
+
+fig, ax = plt.subplots(figsize = (3,3))
+plot = ax.scatter(master.plantClimateR2, master.score, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+sns.regplot(x = 'plantClimateR2', y = 'score', data = master, ax = ax, scatter = False)
 plt.colorbar(plot)
-ax.set_xlabel(r"$\frac{dLFMC^\prime}{dVPD^\prime_6}$")
-# ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
+ax.set_xlabel(r"$R^2(LFMC',ARR(VPD'))$")
 ax.set_ylabel(r"$R^2(log(BA),VPD$")
 
-ax.set_xlim(0,1)
+# ax.set_xlim(-0.1,1)
 ax.set_ylim(bottom = -0.05)
 plt.show()
 
 fig, ax = plt.subplots(figsize = (3,3))
-plot = ax.scatter(master.sigma, master.slope, c = master.ndvi,vmin = 0.2, vmax = 0.8)
-sns.regplot(x = 'sigma', y = 'slope', data = master, ax = ax, scatter = False)
-ax.set_xlabel(r"$\frac{dLFMC^\prime}{dVPD^\prime_6}$")
+plot = ax.scatter(master.plantClimateR2, master.slope, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+sns.regplot(x = 'plantClimateR2', y = 'slope', data = master, ax = ax, scatter = False)
+ax.set_xlabel(r"$R^2(LFMC',ARR(VPD'))$")
 ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
-# ax.set_ylabel(r"$R^2(log(BA),VPD$")
 plt.colorbar(plot)
 
-ax.set_xlim(0,1)
+# ax.set_xlim(-0.1,1)
 # ax.set_ylim(bottom = -0.05)
 plt.show()
+
+fig, ax = plt.subplots(figsize = (3,3))
+plot = ax.scatter(master.plantClimateCoefSum, master.score, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+sns.regplot(x = 'plantClimateCoefSum', y = 'score', data = master, ax = ax, scatter = False)
+plt.colorbar(plot)
+ax.set_xlabel(r"$\sum(\beta)$")
+ax.set_ylabel(r"$R^2(log(BA),VPD$")
+
+fig, ax = plt.subplots(figsize = (3,3))
+plot = ax.scatter(master.plantClimateCoefSum, master.slope, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+sns.regplot(x = 'plantClimateCoefSum', y = 'slope', data = master, ax = ax, scatter = False)
+plt.colorbar(plot)
+ax.set_xlabel(r"$\sum(\beta)$")
+ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
+
+
 
 
 fig, ax = plt.subplots(figsize = (3,3))
+plot = ax.scatter(master.plantClimateCoefDiff, master.score, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+sns.regplot(x = 'plantClimateCoefDiff', y = 'score', data = master, ax = ax, scatter = False)
+plt.colorbar(plot)
+ax.set_xlabel(r"$\sum\beta_{[0,-2]} - \sum\beta_{[-4,-6]}$")
+ax.set_ylabel(r"$R^2(log(BA),VPD$")
 
-sns.regplot(x = 'ndvi', y = 'slope', data = master, ax = ax)
-ax.set_xlabel(r"Mean NDVI")
+fig, ax = plt.subplots(figsize = (3,3))
+plot = ax.scatter(master.plantClimateCoefDiff, master.slope, c = master.ndvi,vmin = 0.2, vmax = 0.8)
+sns.regplot(x = 'plantClimateCoefDiff', y = 'slope', data = master, ax = ax, scatter = False)
+plt.colorbar(plot)
+ax.set_xlabel(r"$\sum\beta_{[0,-2]} - \sum\beta_{[-4,-6]}$")
 ax.set_ylabel(r"$\frac{dlog(BA)}{dVPD}$")
-# ax.set_ylabel(r"$R^2(log(BA),VPD$")
-# ax.set_xlim(0,1)
+
+r2 = master.corr().loc['plantClimateCoefDiff','slope']**2
+print("[INFO] R2 of relationship = %0.2f"%r2)
+
+
+
+
+# ax.set_xlim(-0.1,1)
 # ax.set_ylim(bottom = -0.05)
 plt.show()
 
 
 
-# print("[INFO] Max slope = %0.2f"%maxslope)
-# print("[INFO] min slope = %0.2f"%minslope)
-# print("[INFO] Max R2 = %0.2f"%maxscore)
-# print("[INFO] min R2 = %0.2f"%minscore)
+
+print("[INFO] Max slope = %0.2f"%maxslope)
+print("[INFO] min slope = %0.2f"%minslope)
+print("[INFO] Max R2 = %0.2f"%maxscore)
+print("[INFO] min R2 = %0.2f"%minscore)
 
 
 
