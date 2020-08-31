@@ -9,7 +9,7 @@ import os
 import rasterio
 from rasterio.mask import mask
 import geopandas as gpd
-from init import dir_root
+from init import dir_root, dir_data
 import fiona
 import matplotlib.pyplot as plt
 import numpy as np
@@ -103,33 +103,69 @@ def regress(master):
 #%%
 
 
-shapes, props = import_ecoregions()
+# shapes, props = import_ecoregions()
 
-years = range(2016, 2021)
-months = range(1,13)
-days = [1,15]
+# years = range(2016, 2021)
+# months = range(1,13)
+# days = [1,15]
 
-dates = []
-for year in years:
-    for month in months:
-        for day in days:
-            dates+=["%s-%02d-%02d"%(year, month, day)]
+# dates = []
+# for year in years:
+#     for month in months:
+#         for day in days:
+#             dates+=["%s-%02d-%02d"%(year, month, day)]
 
-dates = dates[12:-11]
+# dates = dates[12:-11]
     
-# shape = [shapes[0]]    
+# # shape = [shapes[0]]    
 
-for shape, prop in zip(shapes, props):    
-    shapeArea = prop['shape_area']
-    if shapeArea>1e8:
-        print('\r'+'[INFO] Processing ecoregion with area = %d'%shapeArea)
-        create_df([shape], prop)
+# for shape, prop in zip(shapes, props):    
+#     shapeArea = prop['shape_area']
+#     if shapeArea>1e8:
+#         print('\r'+'[INFO] Processing ecoregion with area = %d'%shapeArea)
+#         create_df([shape], prop)
     
-        # out_meta = src.meta
-        
-    # print(out_image[0].shape)    
 
-# plt.imshow(out_image[0])
+#%% run regression 
 
+df = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_2001_2019_no_geo.csv"))
+dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_plantClimate.csv"))
+df = df.join(dfr['plantClimateSensitivity'])
+dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_vpd_ndvi_2001_2019_no_geo.csv"))
+cols = [col for col in dfr.columns if 'vpd' in col]# select vpd
+cols = cols + ['ndviMean']
+dfr = dfr[cols]
+df = df.join(dfr[cols])
 
-# out_image[0].max()
+df['shape_area'] = df['shape_area'].astype(np.int64)
+df = df.loc[df['shape_area']>1e8]
+df["plantClimateR2"] = np.nan
+df["plantClimateCoefSum"] = np.nan
+df["plantClimateCoefDiff"] = np.nan
+   
+for filename in os.listdir(os.path.join(dir_root, "data","arr_ecoregions")):
+    sub = pd.read_csv(os.path.join(dir_root, "data","arr_ecoregions", filename))
+    if sub.shape[0] < 100:
+        continue
+    r2, coefs = regress(sub)
+    
+    df.loc[df['shape_area']==int(filename[:-4]), "plantClimateR2"] = r2
+    
+    coefs = coefs[1:]
+    minCoef = np.min(coefs)
+    maxCoef = np.max(coefs)
+    coefs = (coefs - minCoef) /(maxCoef - minCoef)
+    
+    df.loc[df['shape_area']==int(filename[:-4]), "plantClimateCoefSum"] = np.sum(coefs)
+    df.loc[df['shape_area']==int(filename[:-4]), "plantClimateCoefDiff"] = np.sum(coefs[:4]) - np.sum(coefs[-4:])
+    
+    print('[INFO] Processing ecoregion with file = %s'%filename)
+df.to_csv(os.path.join(dir_data, "arr_ecoregions_fire_climate_plant.csv"))
+    
+    
+#     df.columns
+# df.shape
+# df.head()
+
+    
+    

@@ -39,6 +39,21 @@ lfmc = lfmc.select(['b1'],['lfmc'])
 nImages = lfmc.count().select("lfmc")
 
 threshCount = 50
+
+lfmcMin = ee.Image(lfmc.min())
+lfmcMax = ee.Image(lfmc.max())
+
+def minMax(image):
+    start = image.get("system:time_start")
+    end = image.get("system:time_end")
+
+    image = image.subtract(lfmcMin).divide(lfmcMax.subtract(lfmcMin))
+    
+    image = image.set("system:time_start",start)
+    image = image.set("system:time_end", end)
+    return image
+lfmc = lfmc.map(minMax) #should be performed before seasonal cycle computation
+
 def countMask(image):
   image = image.updateMask(nImages.gte(threshCount))
   return image
