@@ -78,14 +78,15 @@ def create_df(shape, prop):
             out_image = crop_raster(shiftedFile, shape)
             df['vpd(t-%d)'%ctr] = out_image[1].flatten()
             ctr+=1
-        df.dropna(inplace = True)
-        master = master.append(df)
+        # df.dropna(inplace = True)
+        df = df.mean()
+        master = master.append(df,ignore_index = True)
         # except:
             # continue
         
     shapeArea = round(prop['shape_area'])
     
-    master.to_csv(os.path.join(dir_root, "data","arr_ecoregions_L3_summer","%s.csv"%shapeArea))
+    master.to_csv(os.path.join(dir_root, "data","arr_ecoregions_L3_mean","%s.csv"%shapeArea))
     return master
     
 
@@ -106,7 +107,7 @@ def regress(master):
 # shapes, props = import_ecoregions()
 
 # years = range(2016, 2021)
-# months = range(6, 12)
+# months = range(1,13)
 # days = [1,15]
 
 # dates = []
@@ -143,8 +144,8 @@ df["plantClimateR2"] = np.nan
 df["plantClimateCoefSum"] = np.nan
 df["plantClimateCoefDiff"] = np.nan
    
-for filename in os.listdir(os.path.join(dir_root, "data","arr_ecoregions")):
-    sub = pd.read_csv(os.path.join(dir_root, "data","arr_ecoregions", filename))
+for filename in os.listdir(os.path.join(dir_root, "data","arr_ecoregions_normalized")):
+    sub = pd.read_csv(os.path.join(dir_root, "data","arr_ecoregions_normalized", filename))
     if sub.shape[0] < 100:
         continue
     r2, coefs = regress(sub)
@@ -161,7 +162,7 @@ for filename in os.listdir(os.path.join(dir_root, "data","arr_ecoregions")):
     df.loc[df['shape_area']==int(filename[:-4]), "plantClimateCoefDiff"] = np.sum(coefs[:4]) - np.sum(coefs[-4:])
     
     print('[INFO] Processing ecoregion with file = %s'%filename)
-df.to_csv(os.path.join(dir_data, "arr_ecoregions_L3_summer_fire_climate_plant.csv"))
+df.to_csv(os.path.join(dir_data, "arr_ecoregions_L3_mean_fire_climate_plant.csv"))
     
 
     

@@ -56,7 +56,7 @@ def addMeanVpd(df):
 # cols = cols + ['ndviMean']
 # dfr = dfr[cols]
 # df = df.join(dfr[cols])
-df= pd.read_csv(os.path.join(dir_data, "arr_ecoregions_fire_climate_plant.csv"))
+df= pd.read_csv(os.path.join(dir_data, "arr_ecoregions_L3_kmeans_fire_climate_plant.csv"))
 df = addMeanVpd(df)
 df.shape
 df.head()
@@ -99,8 +99,9 @@ for index, row in df.iterrows():
     
     sub = pd.DataFrame({'aridity':x.values,'ba':y.values}, dtype = float)    
     sub = sub.loc[sub.ba>0]
-    
-    if sub.shape[0]<10:
+    # sub.loc[sub.ba<=0,'ba'] = 1e-10
+    sub.dropna(inplace = True)
+    if sub.shape[0]<5:
         continue
     ctr+=1
     sub['logba'] = np.log10(sub.ba)
@@ -136,6 +137,7 @@ for index, row in df.iterrows():
 master.head()
 master.shape
 # master = master.loc[master.ndvi>=0.4]
+master = master.loc[master.plantClimateR2<1]
 
 # fig, ax = plt.subplots(figsize = (3,3))
 # plot = ax.scatter(master.sigma, master.score, c = master.ndvi,vmin = 0.2, vmax = 0.8)
@@ -174,9 +176,10 @@ master.shape
 
 fig, ax = plt.subplots(figsize = (3,3))
 master['plantClimateR2'].hist(ax = ax, bins = 40)
-ax.set_ylabel(r"Ecoregions")
+ax.set_ylabel(r"Sub-ecoregions")
 ax.set_xlabel(r"$R^2(LFMC',ARR(VPD'))$")
 plt.show()
+
 
 fig, ax = plt.subplots(figsize = (3,3))
 sns.regplot(x = 'vpd', y = 'ndvi', data = master, ax = ax)
