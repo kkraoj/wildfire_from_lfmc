@@ -22,7 +22,7 @@ import sys
 
 
 def import_ecoregions():
-    shapePath = os.path.join(dir_root, "data","ecoregions_from_gee","ecoregions.shp")
+    shapePath = os.path.join(dir_root, "data","ecoregions_from_gee","ecoregions_L4.shp")
     
     with fiona.open(shapePath, "r") as shapefile:
         shapes = [feature["geometry"] for feature in shapefile]
@@ -85,7 +85,7 @@ def create_df(shape, prop):
         
     shapeArea = round(prop['shape_area'])
     
-    master.to_csv(os.path.join(dir_root, "data","arr_ecoregions_L3_summer","%s.csv"%shapeArea))
+    master.to_csv(os.path.join(dir_root, "data","arr_ecoregions_L4","%s.csv"%shapeArea))
     return master
     
 
@@ -100,68 +100,67 @@ def regress(master):
     
     return r2, coefs
     
-#%% create dfs for regression
+#%%
 
 
-# shapes, props = import_ecoregions()
+shapes, props = import_ecoregions()
 
-# years = range(2016, 2021)
-# months = range(6, 12)
-# days = [1,15]
+years = range(2016, 2021)
+months = range(1,13)
+days = [1,15]
 
-# dates = []
-# for year in years:
-#     for month in months:
-#         for day in days:
-#             dates+=["%s-%02d-%02d"%(year, month, day)]
+dates = []
+for year in years:
+    for month in months:
+        for day in days:
+            dates+=["%s-%02d-%02d"%(year, month, day)]
 
-# dates = dates[12:-11]
+dates = dates[12:-11]
     
-# # shape = [shapes[0]]    
+# shape = [shapes[0]]    
 
-# for shape, prop in zip(shapes, props):    
-#     shapeArea = prop['shape_area']
-#     if shapeArea>1e8:
-#         print('\r'+'[INFO] Processing ecoregion with area = %d'%shapeArea)
-#         create_df([shape], prop)
+for shape, prop in zip(shapes, props):    
+    shapeArea = prop['shape_area']
+    if shapeArea>1e8:
+        print('\r'+'[INFO] Processing ecoregion with area = %d'%shapeArea)
+        create_df([shape], prop)
     
 
 #%% run regression 
 
-df = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_2001_2019_no_geo.csv"))
-dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_plantClimate.csv"))
-df = df.join(dfr['plantClimateSensitivity'])
-dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_vpd_ndvi_2001_2019_no_geo.csv"))
-cols = [col for col in dfr.columns if 'vpd' in col]# select vpd
-cols = cols + ['ndviMean']
-dfr = dfr[cols]
-df = df.join(dfr[cols])
+# df = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_2001_2019_no_geo.csv"))
+# dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_plantClimate.csv"))
+# df = df.join(dfr['plantClimateSensitivity'])
+# dfr = pd.read_csv(os.path.join(dir_data, "ecoregions_fire_vpd_ndvi_2001_2019_no_geo.csv"))
+# cols = [col for col in dfr.columns if 'vpd' in col]# select vpd
+# cols = cols + ['ndviMean']
+# dfr = dfr[cols]
+# df = df.join(dfr[cols])
 
-df['shape_area'] = df['shape_area'].astype(np.int64)
-df = df.loc[df['shape_area']>1e8]
-df["plantClimateR2"] = np.nan
-df["plantClimateCoefSum"] = np.nan
-df["plantClimateCoefDiff"] = np.nan
+# df['shape_area'] = df['shape_area'].astype(np.int64)
+# df = df.loc[df['shape_area']>1e8]
+# df["plantClimateR2"] = np.nan
+# df["plantClimateCoefSum"] = np.nan
+# df["plantClimateCoefDiff"] = np.nan
    
-for filename in os.listdir(os.path.join(dir_root, "data","arr_ecoregions")):
-    sub = pd.read_csv(os.path.join(dir_root, "data","arr_ecoregions", filename))
-    if sub.shape[0] < 100:
-        continue
-    r2, coefs = regress(sub)
+# for filename in os.listdir(os.path.join(dir_root, "data","arr_ecoregions")):
+#     sub = pd.read_csv(os.path.join(dir_root, "data","arr_ecoregions", filename))
+#     if sub.shape[0] < 100:
+#         continue
+#     r2, coefs = regress(sub)
     
-    df.loc[df['shape_area']==int(filename[:-4]), "plantClimateR2"] = r2
+#     df.loc[df['shape_area']==int(filename[:-4]), "plantClimateR2"] = r2
     
-    coefs = coefs[1:]
-    coefs = np.abs(coefs)
-    minCoef = np.min(coefs)
-    maxCoef = np.max(coefs)
-    coefs = (coefs - minCoef) /(maxCoef - minCoef)
+#     coefs = coefs[1:]
+#     minCoef = np.min(coefs)
+#     maxCoef = np.max(coefs)
+#     coefs = (coefs - minCoef) /(maxCoef - minCoef)
     
-    df.loc[df['shape_area']==int(filename[:-4]), "plantClimateCoefSum"] = np.sum(coefs)
-    df.loc[df['shape_area']==int(filename[:-4]), "plantClimateCoefDiff"] = np.sum(coefs[:4]) - np.sum(coefs[-4:])
+#     df.loc[df['shape_area']==int(filename[:-4]), "plantClimateCoefSum"] = np.sum(coefs)
+#     df.loc[df['shape_area']==int(filename[:-4]), "plantClimateCoefDiff"] = np.sum(coefs[:4]) - np.sum(coefs[-4:])
     
-    print('[INFO] Processing ecoregion with file = %s'%filename)
-df.to_csv(os.path.join(dir_data, "arr_ecoregions_L3_summer_fire_climate_plant.csv"))
+#     print('[INFO] Processing ecoregion with file = %s'%filename)
+# df.to_csv(os.path.join(dir_data, "arr_ecoregions_fire_climate_plant.csv"))
     
 
     
