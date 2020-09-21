@@ -40,12 +40,10 @@ def create_time_df():
     filename = os.path.join(dir_root, "data","lfmc_vpd_raw","lfmc_map_%s.tif"%date)
     ds = gdal.Open(filename)
     array = np.array(ds.GetRasterBand(1).ReadAsArray())
-    pixels = array.shape[0]*array.shape[1]
     
     
     x_loc, y_loc = np.meshgrid(range(array.shape[1]),range(array.shape[0]) )
     
-    # for pixel in pixels:
     master = pd.DataFrame()
     for date in dates:
         df = pd.DataFrame()
@@ -79,7 +77,7 @@ def create_time_df():
             ctr+=1
         # df.dropna(inplace = True)
         master = master.append(df,ignore_index = True) 
-        master.to_pickle(os.path.join(dir_root, "data","arr_pixels_raw","arr_pixels_time_wise"))
+    master.to_pickle(os.path.join(dir_root, "data","arr_pixels_raw","arr_pixels_time_wise"))
     return master
     
 
@@ -110,7 +108,7 @@ for year in years:
 dates = dates[12:-11]
     
 
-create_time_df()
+# create_time_df()
 master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_raw","arr_pixels_time_wise"))
 
 master = master.dropna()
@@ -123,38 +121,38 @@ x_loc = [x[2] for x in out]
 y_loc = [x[3] for x in out]
 
 fig, ax = plt.subplots(figsize = (3,3))
-ax.hist(r2,bins = 100)
+ax.hist(r2,bins = 100, histtype=u'step', color = "magenta", linewidth = 2)
 ax.set_xlim(0,1)
 ax.set_xlabel("$R^2$")
 ax.set_ylabel("Frequency")
 
 
-fig, ax = plt.subplots(figsize = (3,3))
+# fig, ax = plt.subplots(figsize = (3,3))
 
-cmap = plt.cm.viridis  # define the colormap
-# extract all colors from the .jet map
-cmaplist = [cmap(i) for i in range(cmap.N)]
+# cmap = plt.cm.viridis  # define the colormap
+# # extract all colors from the .jet map
+# cmaplist = [cmap(i) for i in range(cmap.N)]
 
-# create the new map
-cmap = mpl.colors.LinearSegmentedColormap.from_list(
-    'Custom cmap', cmaplist, cmap.N)
+# # create the new map
+# cmap = mpl.colors.LinearSegmentedColormap.from_list(
+#     'Custom cmap', cmaplist, cmap.N)
 
-# define the bins and normalize
-bounds = np.linspace(0, 1, 21)
-norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+# # define the bins and normalize
+# bounds = np.linspace(0, 1, 21)
+# norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
-sc = ax.scatter(x_loc,np.max(y_loc) - y_loc,c = r2, vmin = 0, vmax = 1, cmap = cmap,marker = "s", s = 0.05,norm = norm)
-ax.axes.get_xaxis().set_visible(False)
-ax.axes.get_yaxis().set_visible(False)
+# sc = ax.scatter(x_loc,np.max(y_loc) - y_loc,c = r2, vmin = 0, vmax = 1, cmap = cmap,marker = "s", s = 0.05,norm = norm)
+# ax.axes.get_xaxis().set_visible(False)
+# ax.axes.get_yaxis().set_visible(False)
 
-# create a second axes for the colorbar
-ax2 = fig.add_axes([0.95, 0.1, 0.03, 0.8])
-cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
-    spacing='proportional', boundaries=bounds, format='%0.2f')
+# # create a second axes for the colorbar
+# ax2 = fig.add_axes([0.95, 0.1, 0.03, 0.8])
+# cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
+#     spacing='proportional', boundaries=bounds, format='%0.2f')
 
-ax2.set_ylabel('$R^2$', size=12)
+# ax2.set_ylabel('$R^2$', size=12)
 
-plt.show()
+# plt.show()
 
 
 
@@ -175,21 +173,21 @@ ndvi = np.array(ds.GetRasterBand(1).ReadAsArray())
 plantClimate = ndvi.copy()
 plantClimate[:,:] = np.nan
 plantClimate[y_loc, x_loc] = r2
-# plt.imshow(plantClimate,vmin = 0, vmax = 1)
+plt.imshow(plantClimate,vmin = 0, vmax = 1)
 
 fig, ax = plt.subplots(figsize = (3,3))
 ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 # ax.set_xlim(0,1)
 ax.set_ylim(0,1)
 ax.set_xlabel("VPD (Hpa)")
-ax.set_ylabel("$R^2(LFMC, VPD)$")
+ax.set_ylabel("$R^2(LFMC, DFMC_{100hr})$")
 
 fig, ax = plt.subplots(figsize = (3,3))
 ax.scatter(ndvi, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 # ax.set_xlim(0,1)
 ax.set_ylim(0,1)
 ax.set_xlabel("NDVI")
-ax.set_ylabel("$R^2(LFMC, VPD)$")
+ax.set_ylabel("$R^2(LFMC, DFMC_{100hr})$")
 
 np.corrcoef(vpd.flatten(), plantClimate.flatten())
 data = pd.DataFrame({ "plantClimate":plantClimate.flatten(),"ndvi":ndvi.flatten(),"vpd":vpd.flatten()})

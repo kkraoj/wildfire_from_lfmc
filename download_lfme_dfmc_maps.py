@@ -54,9 +54,9 @@ threshCount = 50
 #     return image
 # lfmc = lfmc.map(minMax) #should be performed before seasonal cycle computation
 
-# def countMask(image):
-#   image = image.updateMask(nImages.gte(threshCount))
-#   return image
+def countMask(image):
+  image = image.updateMask(nImages.gte(threshCount))
+  return image
 
 # months = ee.List.sequence(1,12);
 # def lfmcSeasonalCycle(m):
@@ -135,7 +135,7 @@ def convert_to_float(image):
     return image.toFloat()
 
 lfmc = lfmc.map(addGridmet)
-# lfmcAnom = lfmcAnom.map(countMask)
+lfmc = lfmc.map(countMask)
 # print(lfmcAnom.first().getInfo())
 # lfmcAnom = lfmcAnom.cast({'lfmc':'float','vpdmax':'float'}, ['lfmc','vpdmax'])
 lfmc = lfmc.map(convert_to_float)

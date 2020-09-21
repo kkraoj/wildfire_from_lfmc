@@ -19,6 +19,8 @@ from pandas.tseries.offsets import DateOffset
 from sklearn.linear_model import LinearRegression
 import sys
 import gdal
+import matplotlib as mpl
+from osgeo import gdal, osr
 
 
 def get_dates(date):
@@ -36,19 +38,17 @@ def get_dates(date):
     
 def create_time_df():
     date = "2016-01-01"
-    filename = os.path.join(dir_root, "data","lfmc_dfmc_anomalies","lfmc_map_%s.tif"%date)
+    filename = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%date)
     ds = gdal.Open(filename)
     array = np.array(ds.GetRasterBand(1).ReadAsArray())
-    pixels = array.shape[0]*array.shape[1]
     
     
-    x_loc, y_loc = np.meshgrid(range(array.shape[0]),range(array.shape[1]) )
+    x_loc, y_loc = np.meshgrid(range(array.shape[1]),range(array.shape[0]) )
     
-    # for pixel in pixels:
     master = pd.DataFrame()
     for date in dates:
         df = pd.DataFrame()
-        filename = os.path.join(dir_root, "data","lfmc_dfmc_anomalies","lfmc_map_%s.tif"%date)
+        filename = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%date)
         ds = gdal.Open(filename)
         lfmc = np.array(ds.GetRasterBand(1).ReadAsArray())
         dfmc = np.array(ds.GetRasterBand(2).ReadAsArray())
@@ -71,30 +71,51 @@ def create_time_df():
         # print(date)
 
         for t in subsetDates:
-            shiftedFile = os.path.join(dir_root, "data","lfmc_dfmc_anomalies","lfmc_map_%s.tif"%t)
-            filename = os.path.join(dir_root, "data","lfmc_dfmc_anomalies","lfmc_map_%s.tif"%date)
+            shiftedFile = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%t)
+            filename = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%date)
             ds = gdal.Open(filename)
             df['dfmc(t-%d)'%ctr] = np.array(ds.GetRasterBand(2).ReadAsArray()).flatten()
             ctr+=1
         # df.dropna(inplace = True)
         master = master.append(df,ignore_index = True) 
-        master.to_pickle(os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_anomalies","arr_pixels_time_wise_100hr"))
+    master.to_pickle(os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","arr_pixels_time_wise_100hr"))
     return master
     
 
-def regress(df):                    
-    X = df.drop('date',axis = 1).iloc[:,1:6]
+def regress(df):            
+    cols = [col for col in df.columns if "dfmc" in col]        
+    X = df.loc[:,cols]
     y = df.iloc[:,0]
-
+    y = (y - np.mean(y))/np.std(y)
     reg = LinearRegression().fit(X, y)
 
     r2 = reg.score(X, y)
     coefs = [reg.intercept_]+list(reg.coef_)
     
     return r2, coefs, df['x_loc'].iloc[0],df['y_loc'].iloc[0]
+
+def save_tif(data, geotransform, savepath = None):
+    
+    nrows, ncols = data.shape
+    
+    output_raster = gdal.GetDriverByName('GTiff').Create(savepath,ncols, nrows, 1 ,gdal.GDT_Float32)  # Open the file
+    output_raster.SetGeoTransform(geotransform)  # Specify its coordinates
+    srs = osr.SpatialReference()                 # Establish its coordinate encoding
+    srs.ImportFromEPSG(4326)                     # This one specifies WGS84 lat long.
+                                                # Anyone know how to specify the 
+                                                 # IAU2000:49900 Mars encoding?
+    output_raster.SetProjection(srs.ExportToWkt() )   # Exports the coordinate system 
+                                                       # to the file
+    output_raster.GetRasterBand(1).WriteArray(data)   # Writes my array to the raster
+    
+    output_raster.FlushCache()
+    output_raster = None 
+    print("output_saved")
+    
+    
+    
     
 #%%
-
 years = range(2016, 2021)
 months = range(1,13)
 days = [1,15]
@@ -108,63 +129,120 @@ for year in years:
 dates = dates[12:-11]
     
 
-create_time_df()
-master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_anomalies","arr_pixels_time_wise_100hr"))
+# create_time_df()
+# master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","arr_pixels_time_wise_100hr"))
 
-master = master.dropna()
-master.date = pd.to_datetime(master.date)
-master = master.loc[master.date.dt.month>=6]
+# master = master.dropna()
+# master.date = pd.to_datetime(master.date)
+# master = master.loc[master.date.dt.month>=6]
 
-out = master.groupby('pixel_index').apply(regress)
+# out = master.groupby('pixel_index').apply(regress)
+# out.to_pickle(os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","plant_climate_regressed_normalized_100hr"))
+out = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","plant_climate_regressed_normalized_1000hr"))
+ 
+
+#%% r2
 r2 = [x[0] for x in out]
 x_loc = [x[2] for x in out]
 y_loc = [x[3] for x in out]
 
+
+filename = os.path.join(dir_root, "data","mean","vpd_mean.tif")
+ds = gdal.Open(filename)
+vpd = np.array(ds.GetRasterBand(1).ReadAsArray())
+
+
+filename = os.path.join(dir_root, "data","mean","ndvi_mean.tif")
+ds = gdal.Open(filename)
+ndvi = np.array(ds.GetRasterBand(1).ReadAsArray())
+geotransform = ds.GetGeoTransform()
+
+plantClimate = ndvi.copy()
+plantClimate[:,:] = np.nan
+plantClimate[y_loc, x_loc] = r2
+
+# plantClimate[np.isnan(plantClimate)] = -9999
+savepath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_100hr_normalized_r2.tif")
+# save_tif(plantClimate, geotransform, savepath)
+
+#%% variants with coefs
+coefs = [x[1] for x in out]
+coefSum = [np.sum(x[1:]) for x in coefs]
+coefAbsSum = [np.sum(np.abs(x[1:])) for x in coefs]
+
+coefDiff = [np.sum(x[1:5]) - np.sum(x[8:12]) for x in coefs]
+coefAbsDiff = [np.sum(np.abs(x[1:5])) - np.sum(np.abs(x[8:12])) for x in coefs]
+
+plantClimate = ndvi.copy()
+plantClimate[:,:] = np.nan
+plantClimate[y_loc, x_loc] = coefAbsSum
+plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
+savepath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_100hr_normalized_coefAbsSum.tif")
+# save_tif(plantClimate, geotransform, savepath)
+
+plantClimate = ndvi.copy()
+plantClimate[:,:] = np.nan
+plantClimate[y_loc, x_loc] = coefAbsDiff
+plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
+savepath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_1000hr_normalized_coefAbsSum.tif")
+# save_tif(plantClimate, geotransform, savepath)
+
+
+#%%plots
+
 fig, ax = plt.subplots(figsize = (3,3))
-ax.hist(r2,bins = 100, histtype=u'step', color = "gold")
-ax.set_xlim(0,0.3)
-ax.set_ylim(0,120000)
+ax.hist([x for x in r2 if x>=0],bins = 100, histtype=u'step', color = "darkgoldenrod", linewidth = 2)
+ax.set_xlim(0,1.0)
+ax.set_ylim(0,17500)
 ax.set_xlabel("$R^2$")
 ax.set_ylabel("Frequency")
-
+###############################################################################
 
 fig, ax = plt.subplots(figsize = (3,3))
-sc = ax.scatter(x_loc, y_loc,c = r2, vmin = 0, vmax = 1, cmap = "viridis",marker = "s", s = 0.1)
+cmap = plt.cm.viridis  # define the colormap
+# extract all colors from the .jet map
+cmaplist = [cmap(i) for i in range(cmap.N)]
+
+# create the new map
+cmap = mpl.colors.LinearSegmentedColormap.from_list(
+    'Custom cmap', cmaplist, cmap.N)
+
+# define the bins and normalize
+
+vmin = np.nanquantile(plantClimate, q = 0.05)
+vmax = np.nanquantile(plantClimate, q = 0.95)
+bounds = np.linspace(vmin, vmax, 15)
+norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+
+sc = ax.imshow(plantClimate,vmin = vmin, vmax = vmax, cmap = cmap)
+
 ax.axes.get_xaxis().set_visible(False)
 ax.axes.get_yaxis().set_visible(False)
-plt.colorbar(sc)
+# create a second axes for the colorbar
+ax2 = fig.add_axes([0.95, 0.21, 0.05, 0.58])
+cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
+    spacing='proportional', boundaries=bounds)
+
+ax2.set_ylabel('$R^2$', size=12)
+
 plt.show()
+###############################################################################
 
-# df = pd.DataFrame(columns = ["pixel", "plantClimateR2","plantClimateCoefSum","plantClimateCoefDiff"])
-# # df["plantClimateR2"] = np.nan
-# # df["plantClimateCoefSum"] = np.nan
-# # df["plantClimateCoefDiff"] = np.nan
-
-# for pixel in master.pixel_index.unique():
-#     sub = master.loc[master.pixel_index==pixel]
-#     sub = sub.dropna()
-    
-#     if sub.shape[0]>30:
-#         print('[INFO] Processing pixel = %d'%pixel)
-#         r2, coefs = regress(sub.dropna())
-#         row = pd.Series()
-#         row['pixel'] = pixel
-#         row["plantClimateR2"] = r2
-        
-#         coefs = coefs[1:]
-#         minCoef = np.min(coefs)
-#         maxCoef = np.max(coefs)
-#         coefs = (coefs - minCoef) /(maxCoef - minCoef)
-    
-#         row["plantClimateCoefSum"] = np.sum(coefs)
-#         row["plantClimateCoefDiff"] = np.sum(coefs[:4]) - np.sum(coefs[-4:])
-        
-#         df = df.append(row,ignore_index = True)
-        
-#     else:
-#         print('[INFO] Skipping pixel = %d'%pixel)
-# df.to_csv(os.path.join(dir_data, "arr_ecoregions_L3_kmeans_fire_climate_plant.csv"))
+fig, ax = plt.subplots(figsize = (3,3))
+ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
+# ax.set_xlim(0,1)
+ax.set_ylim(vmin, vmax)
+ax.set_xlabel("VPD (Hpa)")
+ax.set_ylabel("$R^2(LFMC, DFMC_{100hr})$")
+###############################################################################
+fig, ax = plt.subplots(figsize = (3,3))
+ax.scatter(ndvi, plantClimate, alpha = 0.3, s = 0.001, color = "k")
+# ax.set_xlim(0,1)
+ax.set_ylim(vmin, vmax)
+ax.set_xlabel("NDVI")
+ax.set_ylabel("$R^2(LFMC, DFMC_{100hr})$")
     
 
-    
-    
+data = pd.DataFrame({ "plantClimate":plantClimate.flatten(),"ndvi":ndvi.flatten(),"vpd":vpd.flatten()})
+print((data.corr()**2).round(2))
+###############################################################################
