@@ -4,7 +4,7 @@ Created on Mon Aug 24 10:30:10 2020
 
 @author: kkrao
 """
-
+#trial sentence
 import os
 import rasterio
 from rasterio.mask import mask
@@ -182,9 +182,9 @@ savepath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_1
 
 plantClimate = ndvi.copy()
 plantClimate[:,:] = np.nan
-plantClimate[y_loc, x_loc] = coefAbsDiff
+plantClimate[y_loc, x_loc] = coefDiff
 plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
-savepath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_1000hr_normalized_coefAbsSum.tif")
+savepath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_1000hr_normalized_coefSum.tif")
 # save_tif(plantClimate, geotransform, savepath)
 
 
