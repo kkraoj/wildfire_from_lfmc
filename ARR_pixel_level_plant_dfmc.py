@@ -4,7 +4,6 @@ Created on Mon Aug 24 10:30:10 2020
 
 @author: kkrao
 """
-#trial sentence
 import os
 import rasterio
 from rasterio.mask import mask
