@@ -90,9 +90,9 @@ def segregate_fireClimate(areas):
     return np.array(r2),np.array(coefs)
 
 
-plantClimatePath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_1000hr_normalized_r2.tif")
+plantClimatePath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_100hr_normalized_coefAbsSum.tif")
 
-plantClimate_seg,areas = segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area")
+plantClimate_seg,areas = segregate_plantClimate(plantClimatePath, n = 12, binning = "equal_area")
 r2,coefs = segregate_fireClimate(areas)
 
 
