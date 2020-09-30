@@ -18,7 +18,9 @@ from pandas.tseries.offsets import DateOffset
 from sklearn.linear_model import LinearRegression
 import sys
 import gdal
+import seaborn as sns
 import matplotlib as mpl
+from scipy import stats
 
 def histedges_equalN(x, nbin):
     npt = len(x)
@@ -29,7 +31,7 @@ def histedges_equalN(x, nbin):
 
 
 
-def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_width"):
+def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area"):
     ds = gdal.Open(plantClimatePath)
     plantClimateMap = np.array(ds.GetRasterBand(1).ReadAsArray())
     ##FOR R2 MAP ONLY. Delete Otherwise
@@ -63,7 +65,7 @@ def clean (ba, vpd):
     
     
 def segregate_fireClimate(areas):
-    r2 ,coefs =[],[]
+    r2 ,coefs, stderrors =[],[], []
     for area in areas:
         ba, vpd = [],[]
         for i in range(19):
@@ -82,21 +84,43 @@ def segregate_fireClimate(areas):
             coefs.append(np.nan)
         else:
             ba = np.log10(ba)
-            vpd = vpd.reshape(-1, 1)
-            reg = LinearRegression().fit(vpd,ba)
-            r2.append(reg.score(vpd, ba))
-            coefs.append(reg.coef_[0])
+            # vpd = vpd.reshape(-1, 1)
+            # reg = LinearRegression().fit(vpd,ba)
+            # r2.append(reg.score(vpd, ba))
+            # coefs.append(reg.coef_[0])
+            
+            slope, intercept, r_value, p_value, std_err = stats.linregress(vpd,ba)
+            r2.append(r_value**2)
+            coefs.append(slope)
+            stderrors.append(std_err)
+            
 
-    return np.array(r2),np.array(coefs)
+    return np.array(r2),np.array(coefs), np.array(stderrors)
 
+hr = "100hr"
+var = "coefAbsSum"
+lag = 6
+folder = "lfmc_dfmc_anomalies"
+norm = "lfmc_norm"
+# for hr in ["1000hr", "100hr"]:
+#     for var in ["coefAbsSum", "coefSum","r2"]:
+    
+# for norm in ["no_norm","lfmc_norm","dfmc_norm","lfmc_dfmc_norm"]:
+    # for var in ["coefSum","coefPositiveSum","coefAbsSum","r2"]    :
+plantClimatePath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s.tif"%(hr,lag,norm,var))
+# plantClimatePath = os.path.join(dir_root, "data","mean","vpd_mean.tif")
 
-plantClimatePath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_raw","lfmc_dfmc_100hr_normalized_coefAbsSum.tif")
+plantClimate_seg,areas = segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area")
+r2,coefs, stderrors = segregate_fireClimate(areas)
 
-plantClimate_seg,areas = segregate_plantClimate(plantClimatePath, n = 12, binning = "equal_area")
-r2,coefs = segregate_fireClimate(areas)
-
-
+df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
 fig, ax = plt.subplots(figsize = (3,3))
+sns.regplot(x=plantClimate_seg, y=coefs,ax=ax)
+ax.errorbar(plantClimate_seg, coefs, yerr = stderrors, color = "lightgrey", zorder = -1)
 ax.scatter(plantClimate_seg, coefs, s = 50, color = "k", edgecolor = "grey")
-ax.set_xlabel(r"$R2(LFM,DFMC_{1000hr})$")
+ax.set_xlabel(r"%s, %s"%(var, hr))
+# ax.set_xlabel(r"Mean VPD")
 ax.set_ylabel(r"$\frac{d(log(BA))}{d(VPD)}$")
+ax.set_title(norm)
+print(df.corr()**2)
+plt.show()

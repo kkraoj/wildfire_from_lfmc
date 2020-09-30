@@ -21,7 +21,7 @@ ee.Initialize()
 roi = ee.FeatureCollection("users/kkraoj/west_usa")
 fireCol = ee.ImageCollection("MODIS/006/MCD64A1")
 prism = ee.ImageCollection("OREGONSTATE/PRISM/AN81m")
-
+prismMean = ee.ImageCollection("OREGONSTATE/PRISM/Norm81m").filter(ee.Filter.calendarRange(3, 9, 'month')).mean()
 prism = prism.filterDate("2001-01-01","2019-12-31").filter(ee.Filter.calendarRange(3, 9, 'month'))
 
 fireCol = fireCol.filterDate("2001-01-01","2019-12-31")
@@ -40,7 +40,14 @@ fireCol = fireCol.map(addMonthYear)
 
 years = ee.List.sequence(2001,2019);
 
-
+def shiftYear(image):
+  start = ee.Date(image.get("system:time_start")).advance(-1,"year")
+  end = ee.Date(image.get("system:time_end")).advance(-1,"year")
+  
+  image = image.set("system:time_start",start.millis())
+  image = image.set("system:time_end", end.millis())
+  
+  return image
 def addAnnualBurnedArea(image):
     
     start = ee.Date(image.get("system:time_start"))
@@ -68,7 +75,18 @@ def prismAnnualMean(y):
     
     return prism_
 
-prism = ee.ImageCollection(years.map(prismAnnualMean))
+
+
+def prismAnnualMeanNorm(y):
+    prism_ = prism.filter(ee.Filter.calendarRange(y, y, 'year')).mean().divide(prismMean).set('year', y).select("vpdmax")
+    start =ee.Date.fromYMD(year = y, month = 1, day = 1)
+    end =ee.Date.fromYMD(year = y, month = 12, day = 31)
+    prism_ = prism_.set("system:time_start", start)
+    prism_ = prism_.set("system:time_end", end)
+    
+    return prism_
+
+prism = ee.ImageCollection(years.map(prismAnnualMeanNorm))
 prism = prism.map(addAnnualBurnedArea)
 
 def convert_to_float(image):
@@ -77,14 +95,13 @@ def convert_to_float(image):
 
 prism = prism.map(convert_to_float)
 
-
 print(prism.size().getInfo())
 
 n = prism.size().getInfo() # number of images to download
     
 colList = prism.toList(n)
 
-folder_name = "ba_vpd"  
+folder_name = "ba_vpd_norm"  
 scale = 4000
 
 for i in range(n):
