@@ -22,6 +22,8 @@ import gdal
 import matplotlib as mpl
 from osgeo import gdal, osr
 import seaborn as sns
+from sklearn.linear_model import Lasso
+
 sns.set(font_scale = 0.9, style = "ticks")
 
 dfmcDict = {"100hr":2, "1000hr":3}
@@ -81,11 +83,11 @@ def create_time_df(maxLag = 6, hr = "100hr", folder = "lfmc_dfmc_raw"):
         # df.dropna(inplace = True)
         master = master.append(df,ignore_index = True) 
     master = master.dropna()
-    master.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d_%s"%(hr, maxLag)))
+    master.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d_%s"%(hr, maxLag, norm)))
     return master
     
 
-def regress(df,norm = "no_norm"):            
+def regress(df,norm = "no_norm", coefs_type = "unrestricted"):            
     cols = [col for col in df.columns if "dfmc" in col]        
     X = df.loc[:,cols]
     y = df.iloc[:,0] ### 
@@ -96,12 +98,17 @@ def regress(df,norm = "no_norm"):
     elif norm == "lfmc_dfmc_norm":
         y = (y-y.mean())/y.std()
         X = (X - X.mean())/X.std()
-    reg = LinearRegression().fit(X, y)
-
+    
+    if coefs_type=="positive":
+        reg = Lasso(alpha=0.0001,precompute=True,max_iter=1000,
+                positive=True, random_state=9999, selection='random').fit(X,y)
+    else:
+        reg = LinearRegression().fit(X, y)
     r2 = reg.score(X, y)
     coefs = [reg.intercept_]+list(reg.coef_)
-    
-    return r2, coefs, df['x_loc'].iloc[0],df['y_loc'].iloc[0]
+
+    return r2, coefs, df['x_loc'].iloc[0],df['y_loc'].iloc[0]    
+
 
 def save_tif(data, geotransform, savepath = None):
     
@@ -159,34 +166,21 @@ hr = "100hr"
 folder = "lfmc_dfmc_anomalies"
 lag = 6
 norm = "lfmc_dfmc_norm"
+coefs_type = "positive"
 # for hr in ["100hr","1000hr"]:
 # for i in range(4, 0, -1):
 # create_time_df(hr = hr, folder = folder, maxLag = lag)
 
 # master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d"%(hr,lag)))
-
-# # master = master.dropna() #already done in create time function
 # master.date = pd.to_datetime(master.date)
 # master = master.loc[master.date.dt.month>=6]
 
-# #########
+# # # #########
 # print('\r')
 # print('[INFO] Regressing')
-# out = master.groupby('pixel_index').apply(regress,norm = norm)
-# out.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"plant_climate_regressed_%s_lag_%d_%s"%(hr,lag,norm)))
-# create_time_df(hr = hr, folder = folder, maxLag = lag)
-
-# master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d"%(hr,lag)))
-# master.date = pd.to_datetime(master.date)
-# master = master.loc[master.date.dt.month>=6]
-
-# #########
-# print('\r')
-# print('[INFO] Regressing')
-# out = master.groupby('pixel_index').apply(regress)
-# out.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"plant_climate_regressed_%s_lag_%d"%(hr,lag)))
-
-out = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"plant_climate_regressed_%s_lag_%d_%s"%(hr,lag,norm)))
+# out = master.groupby('pixel_index').apply(regress,norm = norm, coefs_type = coefs_type)
+# out.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"plant_climate_regressed_%s_lag_%d_%s_%s"%(hr,lag,norm,coefs_type)))
+out = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"plant_climate_regressed_%s_lag_%d_%s_%s"%(hr,lag,norm, coefs_type)))
  
 
 #%% r2
@@ -212,7 +206,7 @@ coefSum = [np.sum(x[1:]) for x in coefs]
 coefMax = [np.max(x[1:]) for x in coefs]
 coefRMS = [np.sqrt(np.sum([y**2 for y in x[1:]])) for x in coefs]
 coefRMS = np.clip(np.array(coefRMS), a_min = 0, a_max = 0.6)
-coefPositiveSum = [np.sum([y for y in x[1:] if y>=0]) for x in coefs]
+# coefPositiveSum = [np.sum([y for y in x[1:] if y>=0]) for x in coefs]
 coefAbsSum = [np.sum(np.abs(x[1:])) for x in coefs]
 
 # coefDiff = [np.sum(x[1:5]) - np.sum(x[8:12]) for x in coefs]
@@ -232,20 +226,20 @@ coefAbsSum = [np.sum(np.abs(x[1:])) for x in coefs]
 # savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_coefRMS.tif"%(hr,lag,norm))
 # save_tif(plantClimate, geotransform, savepath)
 
-# plantClimate = ndvi.copy()
-# plantClimate[:,:] = np.nan
-# plantClimate[y_loc, x_loc] = coefSum
+plantClimate = ndvi.copy()
+plantClimate[:,:] = np.nan
+plantClimate[y_loc, x_loc] = coefSum
 # plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
-# savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_coefSum.tif"%(hr,lag,norm))
+savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefSum.tif"%(hr,lag,norm, coefs_type))
 # save_tif(plantClimate, geotransform, savepath)
 
 # plantClimate = ndvi.copy()
 # plantClimate[:,:] = np.nan
 # plantClimate[y_loc, x_loc] = coefPositiveSum
 # plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
-# savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_coefPositiveSum.tif"%(hr,lag,norm))
+# savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefPositiveSum.tif"%(hr,lag,norm,coefs_type))
 # save_tif(plantClimate, geotransform, savepath)
-
+# 
 # plantClimate = ndvi.copy()
 # plantClimate[:,:] = np.nan
 # plantClimate[y_loc, x_loc] = coefMax
@@ -262,71 +256,81 @@ coefAbsSum = [np.sum(np.abs(x[1:])) for x in coefs]
 
 #%%plots
 
-# fig, ax = plt.subplots(figsize = (3,3))
-# ax.hist([x for x in r2 if x>=0],bins = 100, histtype=u'step', color = "darkgoldenrod", linewidth = 2)
-# ax.set_xlim(0,1.0)
+fig, ax = plt.subplots(figsize = (3,3))
+ax.hist([x for x in r2 if x>=0],bins = 100, histtype=u'step', color = "darkgoldenrod", linewidth = 2)
+ax.set_xlim(0,1.0)
 # ax.set_ylim(0,17500)
-# ax.set_xlabel("$R^2$")
-# ax.set_ylabel("Frequency")
-# plt.show()
+ax.set_xlabel("$R^2$")
+ax.set_ylabel("Frequency")
+plt.show()
+
+
+
+fig, ax = plt.subplots(figsize = (3,3))
+ax.hist(plantClimate.flatten(),bins = 100, histtype=u'step', color = "purple", linewidth = 2)
+ax.set_xlim(0.35,2.5)
+# ax.set_ylim(0,17500)
+ax.set_xlabel(r'$\sum \beta$')
+ax.set_ylabel("Frequency")
+plt.show()
 
 
 ##############################################################################
 
-# fig, ax = plt.subplots(figsize = (3,3))
-# cmap = plt.cm.viridis  # define the colormap
-# # extract all colors from the .jet map
-# cmaplist = [cmap(i) for i in range(cmap.N)]
+fig, ax = plt.subplots(figsize = (3,3))
+cmap = plt.cm.viridis  # define the colormap
+# extract all colors from the .jet map
+cmaplist = [cmap(i) for i in range(cmap.N)]
 
-# # for i in range(50):
-# #     cmaplist[155+i] = mpl.colors.to_rgba("orangered")
-# # create the new map
-# cmap = mpl.colors.LinearSegmentedColormap.from_list(
-#     'Custom cmap', cmaplist, cmap.N)
+# for i in range(50):
+#     cmaplist[155+i] = mpl.colors.to_rgba("orangered")
+# create the new map
+cmap = mpl.colors.LinearSegmentedColormap.from_list(
+    'Custom cmap', cmaplist, cmap.N)
 
 
 
-# # define the bins and normalize
+# define the bins and normalize
 
-# vmin = np.nanquantile(plantClimate, q = 0.05)
-# vmax = np.nanquantile(plantClimate, q = 0.95)
+vmin = np.nanquantile(plantClimate, q = 0.05)
+vmax = np.nanquantile(plantClimate, q = 0.95)
 
-# # vmin = 0
-# # vmax = 1
-# bounds = np.linspace(vmin, vmax, 20)
-# norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+# vmin = 0
+# vmax = 1
+bounds = np.linspace(vmin, vmax, 20)
+norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
-# sc = ax.imshow(plantClimate,vmin = vmin, vmax = vmax, cmap = cmap)
+sc = ax.imshow(plantClimate,vmin = vmin, vmax = vmax, cmap = cmap)
 
-# ax.axes.get_xaxis().set_visible(False)
-# ax.axes.get_yaxis().set_visible(False)
-# # create a second axes for the colorbar
-# ax2 = fig.add_axes([0.95, 0.21, 0.05, 0.58])
-# cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
-#     spacing='proportional', boundaries=bounds, ticks = np.linspace(0,1,11))
+ax.axes.get_xaxis().set_visible(False)
+ax.axes.get_yaxis().set_visible(False)
+# create a second axes for the colorbar
+ax2 = fig.add_axes([0.95, 0.21, 0.05, 0.58])
+cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
+    spacing='proportional', boundaries=bounds)
 
-# ax2.set_ylabel('$R^2$', size=12)
+ax2.set_ylabel(r'$\sum \beta$', size=12)
 
-# plt.show()
+plt.show()
 # ###############################################################################
 
-# fig, ax = plt.subplots(figsize = (3,3))
-# ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
-# # ax.set_xlim(0,1)
-# ax.set_ylim(vmin, vmax)
-# ax.set_xlabel("VPD (Hpa)")
-# ax.set_ylabel("$R^2(LFMC, DFMC_{%s})$"%hr)
-# ###############################################################################
-# fig, ax = plt.subplots(figsize = (3,3))
-# ax.scatter(ndvi, plantClimate, alpha = 0.3, s = 0.001, color = "k")
-# # ax.set_xlim(0,1)
-# ax.set_ylim(vmin, vmax)
-# ax.set_xlabel("NDVI")
-# ax.set_ylabel("$R^2(LFMC, DFMC_{%s})$"%hr)
+fig, ax = plt.subplots(figsize = (3,3))
+ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
+# ax.set_xlim(0,1)
+ax.set_ylim(vmin, vmax)
+ax.set_xlabel("VPD (Hpa)")
+ax.set_ylabel(r'$\sum \beta^{+ve}$')
+###############################################################################
+fig, ax = plt.subplots(figsize = (3,3))
+ax.scatter(ndvi, plantClimate, alpha = 0.3, s = 0.001, color = "k")
+# ax.set_xlim(0,1)
+ax.set_ylim(vmin, vmax)
+ax.set_xlabel("NDVI")
+ax.set_ylabel(r'$\sum \beta^{+ve}$')
     
 
-# data = pd.DataFrame({ "plantClimate":plantClimate.flatten(),"ndvi":ndvi.flatten(),"vpd":vpd.flatten()})
-# print((data.corr()**2).round(2))
+data = pd.DataFrame({ "plantClimate":plantClimate.flatten(),"ndvi":ndvi.flatten(),"vpd":vpd.flatten()})
+print((data.corr()**2).round(2))
 ##############################################################################
 # fig, ax = plt.subplots(figsize = (3,3))
 # lag =1
@@ -399,7 +403,7 @@ coefAbsSum = [np.sum(np.abs(x[1:])) for x in coefs]
 #     plt.show()
 
 #%% distribution of coefficients
-df = pd.DataFrame(coefs)
+df = pd.DataFrame(coefs)    
 df.drop(0,axis = 1,inplace = True)
 fig, ax = plt.subplots(figsize = (3,3))
 
@@ -411,3 +415,31 @@ ax.set_ylabel("Frequency")
 ax.set_title(norm)
 plt.legend(title = "lag",fontsize = 7)
 plt.show()
+
+#%% sample fire-cilamte areas
+
+gg = plantClimate.copy()
+low = 1.4
+high = 1.8
+gg[np.where(gg>high)] = np.nan
+gg[np.where(gg<low)] = np.nan
+fig, ax = plt.subplots(figsize = (3,3))
+cmap = plt.cm.Greys  # define the colormap
+
+sc = ax.imshow(gg,vmin = 0, vmax = 2, cmap = cmap)
+
+ax.axes.get_xaxis().set_visible(False)
+ax.axes.get_yaxis().set_visible(False)
+
+plt.show()
+
+#%% per nonzero soefs
+
+df = pd.DataFrame(coefs)
+df.drop(0,axis = 1,inplace = True)
+df.columns = df.columns-1
+
+fig, ax = plt.subplots(figsize = (3,3))
+(df>0).mean().plot(kind = "bar",ax = ax)
+ax.set_xlabel("lag")
+ax.set_ylabel(r"fraction non-zero $\beta$")
