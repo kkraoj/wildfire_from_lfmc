@@ -156,7 +156,7 @@ def calc_auc_diff(dfs, size_dict, replace_by_random = False):
     return diff, sd, onlyClimate
 
 def plot_importance(mean, std, onlyClimate):
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (6,3), sharey = True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (3,6), sharex = True, dpi = 300)
     
     ax1.barh(width = onlyClimate['small'],y = onlyClimate.index,edgecolor = list(mean.index.map(color_dict).values), color = "w")
     ax2.barh(width = onlyClimate['large'],y = onlyClimate.index,edgecolor = list(mean.index.map(color_dict).values), color = "w")
@@ -173,13 +173,13 @@ def plot_importance(mean, std, onlyClimate):
     
     ax1.set_ylabel("")
     ax2.set_ylabel("")
-    ax1.set_xlabel('AUC')
-    ax2.set_xlabel('AUC')
+    # ax1.set_xlabel('AUC')
+    ax2.set_xlabel('Area Under Curve')
     
     ax1.set_xlim(0.5,1)
     ax2.set_xlim(0.5,1)
-    ax1.set_title("Small fires")
-    ax2.set_title("Large fires")
+    ax1.set_title("Small fires ($\leq$400 Ha)", color = "saddlebrown")
+    ax2.set_title("Large fires (>400 Ha)", color = "saddlebrown")
     
 def overlap_importance_trait(mean_, std_):
     mean = mean_.copy()
@@ -313,7 +313,7 @@ def trait_by_lc():
     axs[0].set_yticklabels(trait.index.values)
 
    
-def overlap_importance_trait_TRY_yanlan_table(mean_, std_):
+def overlap_importance_trait_TRY_yanlan_table(mean, std_):
 
     trait = pd.read_excel(os.path.join(dir_root, "data","traits","TRY","TRY_Hydraulic_Traits_Yanlan.xlsx"))
     # new_index =  list(trait.index)
@@ -334,6 +334,8 @@ def overlap_importance_trait_TRY_yanlan_table(mean_, std_):
     # traitSd = pd.read_excel(os.path.join(dir_root, "working.xlsx"), sheet_name = "std_traits", index_col = "landcover", dtype = {'landcover':str})
     # traitSd.index= new_index
     # mean.index = mean.index.astype(str)
+    mean_ = mean.copy()
+    std_ = std.copy()
     mean_.index.name = "landcover"
     colors = [color_dict[lc] for lc in mean_.index]
     mean_.index = mean_.index.str.replace("\n"," ")
@@ -346,7 +348,7 @@ def overlap_importance_trait_TRY_yanlan_table(mean_, std_):
         
     
     sns.set(style='ticks',font_scale = 1.1, rc = {"xtick.direction": "in","ytick.direction": "in"})
-    fig,  axs = plt.subplots(2, 1, figsize = (3,6), sharex = "col")
+    fig,  axs = plt.subplots(1, 2, figsize = (6,3), sharey = True, dpi = 300)
     ctr = 0
     
     ecolor = "lightgrey"
@@ -360,8 +362,9 @@ def overlap_importance_trait_TRY_yanlan_table(mean_, std_):
         ctr+=1
     # axs[0,0].set_xticklabels(None)
     axs[0].set_ylabel("LFMC Importance")
-    axs[1].set_ylabel("LFMC Importance")
+    # axs[1].set_ylabel("LFMC Importance")
     axs[1].set_xlabel('P50 (Mpa)')
+    axs[0].set_xlabel('P50 (Mpa)')
     return axs
 
 mean, std, onlyClimate = calc_auc_diff(df, SIZE_DICT, replace_by_random = False)
@@ -372,5 +375,5 @@ axs = overlap_importance_trait_TRY_yanlan_table(mean, std)
 # axs = overlap_importance_trait_TRY(mean, std)
 # print(mean)
 # print(std)
-mean_ = mean.copy()
-std_ = std.copy()
+# mean_ = mean.copy()
+# std_ = std.copy()
