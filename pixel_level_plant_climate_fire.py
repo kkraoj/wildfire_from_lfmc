@@ -136,7 +136,11 @@ def clean (ba, vpd):
     vpd = vpd[valid]
     return ba, vpd
     
-    
+def as_si(x, ndp):
+    s = '{x:0.{ndp:d}e}'.format(x=x, ndp=ndp)
+    m, e = s.split('e')
+    return r'{m:s}\times 10^{{{e:d}}}'.format(m=m, e=int(e))
+
     
     
 def segregate_fireClimate(areas):
@@ -165,13 +169,16 @@ def segregate_fireClimate(areas):
             coefs.append(slope)
             stderrors.append(std_err)
             
-            # fig, ax = plt.subplots(figsize = (3,3))
+            fig, ax = plt.subplots(figsize = (3,3))
             # ax.scatter(vpd, ba)
-            # ax.set_xlabel("VPD (Hpa)")
-            # ax.set_ylabel("BA (km$^2$)")
+            ax.set_xlabel("VPD (hPa)")
+            ax.set_ylabel("BA (km$^2$)")
+            sns.regplot(vpd, ba, color = "darkgreen")
+            ax.set_ylim(0,3000)
+            # ax.set_xlim(23,28)
             # print(r_value)
-            # ax.annotate("r$^2$ = %0.2f"%r_value**2, (0.1,0.9),xycoords = "axes fraction",ha = "left", va = "top")
-            # plt.show()
+            ax.annotate(r"$\frac{d(BA)}{d(VPD)}$ = %d (km$^2$/hPa)"%(100*round(slope/100)), (0.05,0.95),xycoords = "axes fraction",ha = "left", va = "top")
+            plt.show()
             
 
     return np.array(r2),np.array(coefs), np.array(stderrors)
@@ -408,7 +415,7 @@ ax.set_xlabel(r"%s, %s"%(var, hr))
 ax.set_xlabel(r"$\sum \beta$")
 ax.set_xlim(0,2)
 # ax.set_xlabel(r"Mean VPD")
-ax.set_ylabel(r"BA (km$^2$")
+ax.set_ylabel(r"BA (km$^2$)")
 # ax.set_title(norm)
 
 plt.show()
