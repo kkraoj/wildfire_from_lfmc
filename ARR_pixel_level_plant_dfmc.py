@@ -23,6 +23,11 @@ import matplotlib as mpl
 from osgeo import gdal, osr
 import seaborn as sns
 from sklearn.linear_model import Lasso
+from mpl_toolkits.basemap import Basemap
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
+from matplotlib import ticker
+from matplotlib.colors import ListedColormap
 
 sns.set(font_scale = 0.9, style = "ticks")
 
@@ -277,41 +282,94 @@ plt.show()
 
 ##############################################################################
 
-fig, ax = plt.subplots(figsize = (3,3))
-cmap = plt.cm.viridis  # define the colormap
-# extract all colors from the .jet map
-cmaplist = [cmap(i) for i in range(cmap.N)]
+# fig, ax = plt.subplots(figsize = (3,3))
+# cmap = plt.cm.viridis  # define the colormap
+# # extract all colors from the .jet map
+# cmaplist = [cmap(i) for i in range(cmap.N)]
 
-# for i in range(50):
-#     cmaplist[155+i] = mpl.colors.to_rgba("orangered")
-# create the new map
-cmap = mpl.colors.LinearSegmentedColormap.from_list(
-    'Custom cmap', cmaplist, cmap.N)
+# # for i in range(50):
+# #     cmaplist[155+i] = mpl.colors.to_rgba("orangered")
+# # create the new map
+# cmap = mpl.colors.LinearSegmentedColormap.from_list(
+#     'Custom cmap', cmaplist, cmap.N)
 
 
 
-# define the bins and normalize
+# # define the bins and normalize
 
-vmin = np.nanquantile(plantClimate, q = 0.05)
-vmax = np.nanquantile(plantClimate, q = 0.95)
+# vmin = np.nanquantile(plantClimate, q = 0.05)
+# vmax = np.nanquantile(plantClimate, q = 0.95)
 
-# vmin = 0
-# vmax = 1
-bounds = np.linspace(vmin, vmax, 20)
-norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+# # vmin = 0
+# # vmax = 1
+# bounds = np.linspace(vmin, vmax, 20)
+# norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
-sc = ax.imshow(plantClimate,vmin = vmin, vmax = vmax, cmap = cmap)
+# sc = ax.imshow(plantClimate,vmin = vmin, vmax = vmax, cmap = cmap)
 
-ax.axes.get_xaxis().set_visible(False)
-ax.axes.get_yaxis().set_visible(False)
-# create a second axes for the colorbar
-ax2 = fig.add_axes([0.95, 0.21, 0.05, 0.58])
-cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
-    spacing='proportional', boundaries=bounds)
+# ax.axes.get_xaxis().set_visible(False)
+# ax.axes.get_yaxis().set_visible(False)
+# # create a second axes for the colorbar
+# ax2 = fig.add_axes([0.95, 0.21, 0.05, 0.58])
+# cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
+#     spacing='proportional', boundaries=bounds)
 
-ax2.set_ylabel(r'$\sum \beta$', size=12)
+# ax2.set_ylabel(r'$\sum \beta$', size=12)
 
+# plt.show()
+
+#################################################################################
+## more beautiful map
+
+fname = 'D:\Krishna\projects\wildfire_from_lfmc\data\mean\lfmc_mean.tif'
+
+ds = gdal.Open(fname)
+gt = ds.GetGeoTransform()
+data = ds.GetRasterBand(1).ReadAsArray().astype(float)
+
+x = np.linspace(start = gt[0],  stop= gt[0]+data.shape[1]*gt[1], num = data.shape[1])    
+y = np.linspace(start = gt[3],  stop= gt[3]+data.shape[0]*gt[5], num = data.shape[0])    
+
+x, y = np.meshgrid(x, y)
+
+enlarge = 2
+sns.set(font_scale = 0.7*enlarge, style = "ticks")
+fig, ax = plt.subplots(figsize=(3*enlarge,3*enlarge))
+
+m = Basemap(llcrnrlon=-119,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
+        projection='lcc',lat_1=33,lat_2=45,lon_0=-95)
+
+m.readshapefile('D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
+                    name='states', drawbounds=True)
+patches   = []
+
+for info, shape in zip(m.states_info, m.states):
+    patches.append(Polygon(np.array(shape), True) )
+ax.add_collection(PatchCollection(patches, facecolor= 'lightgrey', edgecolor='k', linewidths=0.8))
+
+cmap = ListedColormap(sns.color_palette("Set1").as_hex()[:-1])
+
+plot=m.scatter(x,y, zorder = 2, 
+                s=2,c=plantClimate,cmap= cmap ,linewidth = 0,\
+                    marker='s',latlon = True, vmin =0, vmax = 2)
+
+m.readshapefile('D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
+                    name='states', drawbounds=True, linewidth = 0.5)
+
+ax.axis('off')
+cax = fig.add_axes([0.7, 0.45, 0.03, 0.3])
+    
+# cax.annotate('Plant  (%) \n', xy = (0.,0.94), ha = 'left', va = 'bottom', color = "w")
+cb0 = fig.colorbar(plot,ax=ax,cax=cax,ticks = np.linspace(0,2,5))
+# cax.set_yticklabels(['<50','100','150','>200']) 
+
+
+# plt.savefig(os.path.join(dir_figures,'pred_%s.tiff'%date), \
+#                                   dpi =300, bbox_inches="tight",transparent = True)
 plt.show()
+
+
+
 # ###############################################################################
 
 fig, ax = plt.subplots(figsize = (3,3))

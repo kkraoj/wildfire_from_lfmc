@@ -56,6 +56,10 @@ def calc_auc_occurence(dfsub, size_dict, clf):
     df = dfsub.copy()
     auc = pd.DataFrame(index = sorted(df.landcover.unique()),columns = size_dict.keys())
     for fire_size in size_dict.keys():
+        if fire_size=='small':
+            clf = RandomForestClassifier(max_depth=10, random_state=0, oob_score = False,n_estimators = 40)
+        else:
+            clf = RandomForestClassifier(max_depth=6, random_state=0, oob_score = True,n_estimators = 40)
         dfcat = df.loc[size_dict[fire_size]].copy()
         # fig, ax = plt.subplots(figsize = (3,3))
         for lc in sorted(dfcat.landcover.unique()):
@@ -128,7 +132,7 @@ def calc_auc_diff(dfs, size_dict, replace_by_random = False):
     # clf = RandomForestClassifier(max_depth=6, random_state=0, oob_score = True,n_estimators = 40)
     clf = RandomForestClassifier(max_depth=10, random_state=0, oob_score = False,n_estimators = 40)
     # clf = RandomForestClassifier(min_samples_leaf = 10, random_state=0, oob_score = True,n_estimators = 40)
-    allVars, s1 = ensemble_auc(df, size_dict, clf)
+    allVars, sdl = ensemble_auc(df, size_dict, clf)
     
     
     # allVars = calc_auc(df, size_dict, clf)
@@ -137,31 +141,66 @@ def calc_auc_diff(dfs, size_dict, replace_by_random = False):
     if replace_by_random:
         ###testing with random numbers instead of LFMC
         df.loc[:,remove_lfmc] = np.ones(shape = df.loc[:,remove_lfmc].shape)
-        onlyClimate, s2 = ensemble_auc(df, size_dict, clf)
+        onlyClimate, sdc = ensemble_auc(df, size_dict, clf)
     else:
-        onlyClimate, s2 = ensemble_auc(df.drop(remove_lfmc, axis = 1), size_dict, clf)
+        onlyClimate, sdc = ensemble_auc(df.drop(remove_lfmc, axis = 1), size_dict, clf)
     
     diff = (allVars - onlyClimate).copy().astype(float).round(3)
     onlyClimate.index.name = "only climate"
     diff.index.name = "difference, mean"
     allVars.index.name = "all variables"
     
-    sd = (s1.pow(2)+s2.pow(2)).pow(0.5).astype(float).round(3)
-    sd.index.name = "difference, sd"
+    # sd = (s1.pow(2)+s2.pow(2)).pow(0.5).astype(float).round(3)
+    # sd.index.name = "difference, sd"
     # print(onlyClimate.astype(float).round(2))
     # print(allVars.astype(float).round(2))
     # print(diff.astype(float).round(2))
     # print(sd.astype(float).round(2))
     
-    return diff, sd, onlyClimate
+    return diff, sdl,sdc, onlyClimate
+def plot_importance(mean, stdl,std, onlyClimate):
+    
+    height = 0.3
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (6,3), sharey = True, dpi = 300)
+    
+    ax1.barh(width = onlyClimate['small'],y = onlyClimate.index,edgecolor = list(mean.index.map(color_dict).values), height = height,color = "w")
+    ax2.barh(width = onlyClimate['large'],y = onlyClimate.index,edgecolor = list(mean.index.map(color_dict).values), height = height,color = "w")
 
-def plot_importance(mean, std, onlyClimate):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (3,6), sharex = True, dpi = 300)
+    onlyClimate = onlyClimate.fillna(0.0)
+    ax1.barh(width = mean['small']+onlyClimate['small'],y = mean.index,\
+             color = list(mean.index.map(color_dict).values), \
+             edgecolor = list(mean.index.map(color_dict).values),\
+                 xerr = std['small'])
+    ax2.barh(width = mean['large'], y = mean.index, left = onlyClimate['large'], \
+             color = list(mean.index.map(color_dict).values),\
+                edgecolor = list(mean.index.map(color_dict).values),\
+                 xerr = std['large'])
+    
+    ax1.set_ylabel("")
+    ax2.set_ylabel("")
+    ax1.set_xlabel('Area under curve')
+    ax2.set_xlabel('Area under curve')
+    ax1.set_xticks(np.linspace(0.5,1,6))
+    ax2.set_xticks(np.linspace(0.5,1,6))
+    
+    ax1.set_xlim(0.5,1)
+    ax2.set_xlim(0.5,1)
+    ax1.set_title("Small fires ($\leq$400 Ha)", color = "saddlebrown")
+    ax2.set_title("Large fires (>400 Ha)", color = "saddlebrown")
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    # plt.yticks(ax1.get_yticks(), mean.index,linespacing = 0.0)
+    ax1.set_yticklabels(mean.index,linespacing = 0.8)
+    
+def plot_importance_old(mean, std, onlyClimate):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (6,3), sharey = True, dpi = 300)
     
     ax1.barh(width = onlyClimate['small'],y = onlyClimate.index,edgecolor = list(mean.index.map(color_dict).values), color = "w")
     ax2.barh(width = onlyClimate['large'],y = onlyClimate.index,edgecolor = list(mean.index.map(color_dict).values), color = "w")
 
-    
+    onlyClimate = onlyClimate.fillna(0.0)
     ax1.barh(width = mean['small'],y = mean.index, left = onlyClimate['small'],\
              color = list(mean.index.map(color_dict).values), \
              edgecolor = list(mean.index.map(color_dict).values),\
@@ -173,13 +212,22 @@ def plot_importance(mean, std, onlyClimate):
     
     ax1.set_ylabel("")
     ax2.set_ylabel("")
-    # ax1.set_xlabel('AUC')
-    ax2.set_xlabel('Area Under Curve')
+    ax1.set_xlabel('Area under curve')
+    ax2.set_xlabel('Area under curve')
+    ax1.set_xticks(np.linspace(0.5,1,6))
+    ax2.set_xticks(np.linspace(0.5,1,6))
     
     ax1.set_xlim(0.5,1)
     ax2.set_xlim(0.5,1)
     ax1.set_title("Small fires ($\leq$400 Ha)", color = "saddlebrown")
     ax2.set_title("Large fires (>400 Ha)", color = "saddlebrown")
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    # plt.yticks(ax1.get_yticks(), mean.index,linespacing = 0.0)
+    ax1.set_yticklabels(mean.index,linespacing = 0.8)
+    
     
 def overlap_importance_trait(mean_, std_):
     mean = mean_.copy()
@@ -313,7 +361,7 @@ def trait_by_lc():
     axs[0].set_yticklabels(trait.index.values)
 
    
-def overlap_importance_trait_TRY_yanlan_table(mean, std_):
+def overlap_importance_trait_TRY_yanlan_table(mean, std):
 
     trait = pd.read_excel(os.path.join(dir_root, "data","traits","TRY","TRY_Hydraulic_Traits_Yanlan.xlsx"))
     # new_index =  list(trait.index)
@@ -351,25 +399,34 @@ def overlap_importance_trait_TRY_yanlan_table(mean, std_):
     fig,  axs = plt.subplots(1, 2, figsize = (6,3), sharey = True, dpi = 300)
     ctr = 0
     
-    ecolor = "lightgrey"
+    ecolor = "grey"
     s = 100
     for fire_size in ['small','large']:
-
-        axs[ctr].errorbar(x = mean_['p50'], y = mean_[fire_size], yerr = std_[fire_size], xerr = std_['p50'], fmt = 'o', color = ecolor, capsize = 2, zorder = -1)
-        axs[ctr].scatter(x = mean_['p50'], y = mean_[fire_size],marker = 'o', edgecolor = ecolor,color = colors, s = s)
+        sns.regplot(x=mean_['p50'], y = mean_[fire_size],ax=axs[ctr], color = "lightgrey", order=1, ci = 95)
+        axs[ctr].errorbar(x = mean_['p50'], y = mean_[fire_size], yerr = std_[fire_size], xerr = std_['p50'], fmt = 'o', color = ecolor, capsize = 2, zorder = 20)
+        axs[ctr].scatter(x = mean_['p50'], y = mean_[fire_size],marker = 'o', edgecolor = ecolor,color = colors, s = s, zorder = 30)
         axs[ctr].set_xlim(-1, -5)
-    
+        axs[ctr].set_ylim(0,0.1)
+        axs[ctr].spines['right'].set_visible(False)
+        axs[ctr].spines['top'].set_visible(False)
+        
         ctr+=1
     # axs[0,0].set_xticklabels(None)
-    axs[0].set_ylabel("LFMC Importance")
+    axs[0].set_ylabel("Gain by including\nlive fuel moisture")
+    axs[1].set_ylabel("")
     # axs[1].set_ylabel("LFMC Importance")
     axs[1].set_xlabel('P50 (Mpa)')
     axs[0].set_xlabel('P50 (Mpa)')
+    
     return axs
 
-mean, std, onlyClimate = calc_auc_diff(df, SIZE_DICT, replace_by_random = False)
-
-plot_importance(mean, std, onlyClimate)
+mean, stdl,stdc, onlyClimate = calc_auc_diff(df, SIZE_DICT, replace_by_random = False)
+index = ['Grassland', 'Mixed forest', 'Shrub/grassland','Closed broadleaf\ndeciduous','Closed needleleaf\nevergreen', 'Shrubland']
+mean = mean.loc[index]
+stdl = stdl.loc[index]
+stdc = stdc.loc[index]
+onlyClimate = onlyClimate.loc[index]
+plot_importance(mean, stdl,std, onlyClimate)
 axs = overlap_importance_trait_TRY_yanlan_table(mean, std)
 
 # axs = overlap_importance_trait_TRY(mean, std)
