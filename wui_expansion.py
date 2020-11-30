@@ -21,11 +21,16 @@ import seaborn as sns
 def fill_neighbours(arr):
     y_size, x_size = arr.shape
     arr1 = np.empty((y_size + 2, x_size + 2))
-    arr1[1:-1, 1:-1] = arr
+    arr1[1:-1, 1:-1] = 0
     arr1[:-2,:-2] = arr+arr1[:-2,:-2]
     arr1[:-2,2:] = arr+arr1[:-2,2:]
     arr1[2:,:-2] = arr+arr1[2:,:-2]
     arr1[2:,2:] = arr+arr1[2:,2:]
+    
+    arr1[:-2,1:-1] = arr+arr1[:-2,1:-1]
+    arr1[1:-1,2:] = arr+arr1[1:-1,2:]
+    arr1[1:-1,:-2] = arr+arr1[1:-1,:-2]
+    arr1[2:,1:-1] = arr+ arr1[2:,1:-1]
     arr1 = (arr1>0)*1
     
     
@@ -67,6 +72,8 @@ ax.axis('off')
 
 
 fig, axs = plt.subplots(1,3,figsize = (9,3), sharey = True)
+
+
 ctr = 0
 for filename in filenames:
     ax = axs[ctr]
@@ -86,7 +93,7 @@ for filename in filenames:
     ### fille neighbours
     wui = fill_neighbours(wui).copy()
     sns.kdeplot(data = plantClimate[wui==1], ax = ax, color = "lightcoral", label = "WUI neighbours")
-    sns.kdeplot(data = plantClimate[wui==0], ax = ax, color = "grey", label="Others")   
+    sns.kdeplot(data = plantClimate[wui==0], ax = ax, color = "grey", label="Others")
 
     ### fille neighbours CA
     # wui = fill_neighbours(wui).copy()
@@ -97,7 +104,7 @@ for filename in filenames:
     # # ax.set_ylim(0,1)
     ax.set_xlabel("$\sigma$")
     ax.set_title(1990+ctr*10)
-    ax.get_legend().remove()
+    # ax.get_legend().remove()
     ctr+=1
 # ax.legend()
 axs[2].legend(bbox_to_anchor = [1,1])
@@ -105,5 +112,30 @@ axs[0].set_ylabel("Density")
 plt.tight_layout()
 
 
+for filename in filenames:
+    fullfilename = os.path.join(dir_root, "data","WUI",filename)
+    ds = gdal.Open(fullfilename)
+    wui = np.array(ds.GetRasterBand(1).ReadAsArray())
+    print('%s : Intermix = %0.1f %%, Interface = %0.1f %%'%(filename, (wui==1).mean()*100, (wui==2).mean()*100))
 
 
+filename = "wui2010.tif"
+fullfilename = os.path.join(dir_root, "data","WUI",filename)
+ds = gdal.Open(fullfilename)
+wui = np.array(ds.GetRasterBand(1).ReadAsArray())
+wui = (wui>0)*1
+
+wuiDist = range(3)
+df = pd.DataFrame(columns = wuiDist, index = range(plantClimate.shape[0]*plantClimate.shape[1]))
+df.loc[:len(plantClimate[wui==1])-1,0] = plantClimate[wui==1]
+
+for i in wuiDist:
+    wui = fill_neighbours(wui).copy()
+    print((wui==1).mean())
+    df.loc[:len(plantClimate[wui==1])-1,i] = plantClimate[wui==1]
+
+df.dropna(how = "all", inplace = True)
+stack = df.stack(dropna = True).reset_index(drop = False)
+stack = stack.rename(columns = {'level_1':'wuiDist', 0:'sigma'})
+fig, ax = plt.subplots(figsize = (3,3))
+sns.boxplot(data = stack, x = 'wuiDist', y = 'sigma')
