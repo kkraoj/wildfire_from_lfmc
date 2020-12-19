@@ -168,16 +168,17 @@ def segregate_fireClimate(areas):
             r2.append(r_value**2)
             coefs.append(slope)
             stderrors.append(std_err)
-            
+            sns.set(style="ticks", font_scale=1.8)
+
             fig, ax = plt.subplots(figsize = (3,3))
             # ax.scatter(vpd, ba)
             ax.set_xlabel("VPD (hPa)")
             ax.set_ylabel("BA (km$^2$)")
-            sns.regplot(vpd, ba, color = "darkgreen")
+            sns.regplot(vpd, ba, color = "darkgreen",scatter_kws ={'s':80})
             ax.set_ylim(0,3000)
             # ax.set_xlim(23,28)
             # print(r_value)
-            ax.annotate(r"$\frac{d(BA)}{d(VPD)}$ = %d (km$^2$/hPa)"%(100*round(slope/100)), (0.05,0.95),xycoords = "axes fraction",ha = "left", va = "top")
+            # ax.annotate(r"$\frac{d(BA)}{d(VPD)}$ = %d (km$^2$/hPa)"%(100*round(slope/100)), (0.05,0.95),xycoords = "axes fraction",ha = "left", va = "top")
             plt.show()
             
 
