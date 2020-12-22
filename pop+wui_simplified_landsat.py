@@ -42,12 +42,16 @@ plantClimate = np.array(ds.GetRasterBand(1).ReadAsArray())
 
 thresh =0.4
 ctr = 0
+wuiThresh = 5e5
 for (wuiName, popName) in zip(wuiNames, popNames):
     
     fullfilename = os.path.join(dir_root, "data","WUI","arc_export",wuiName)
     ds = gdal.Open(fullfilename)
-    wui = np.array(ds.GetRasterBand(1).ReadAsArray())
-    
+    wui = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
+    wui[wui<0] = np.nan
+    wui = wui>=wuiThresh
+    print(np.nansum(wui))
+
     fullfilename = os.path.join(dir_root, "data","population","gee",popName)
     ds = gdal.Open(fullfilename)
     pop = np.array(ds.GetRasterBand(1).ReadAsArray())*res**2
@@ -76,11 +80,17 @@ vulLabels = np.round(vulLabels, 2)
 ts = pd.DataFrame(columns = vulLabels[:-1], index = [1990,2010])
 thresh =0.4
 ctr = 0
+
 for (wuiName, popName) in zip(wuiNames, popNames):
     
-    fullfilename = os.path.join(dir_root, "data","WUI",wuiName)
+    fullfilename = os.path.join(dir_root, "data","WUI","arc_export",wuiName)
     ds = gdal.Open(fullfilename)
     wui = np.array(ds.GetRasterBand(1).ReadAsArray())
+    wui = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
+    wui[wui<0] = np.nan
+    plt.hist(wui.flatten(),bins = 100)
+    plt.show()
+    wui = wui>=wuiThresh
     
     fullfilename = os.path.join(dir_root, "data","population","gee",popName)
     ds = gdal.Open(fullfilename)
