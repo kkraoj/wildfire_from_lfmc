@@ -10,7 +10,7 @@ import matplotlib as mpl
 
 sns.set(font_scale = 1.1, style = "ticks")
 #%%
-def plot_wui_pc(wuiBefore,wuiAfter):
+def calc_wui_pc(wuiBefore,wuiAfter,wuiThresh):
         
     wuiNames = [wuiBefore, wuiAfter]
     popNames = ["pop1990.tif","pop2010.tif"]
@@ -23,9 +23,7 @@ def plot_wui_pc(wuiBefore,wuiAfter):
     
     #%% % absolute population timeseries split by pc quantiles
     
-    thresh =0.4
     ctr = 0
-    wuiThresh = 1
     for (wuiName, popName) in zip(wuiNames, popNames):
         
         fullfilename = wuiName
@@ -70,7 +68,6 @@ def plot_wui_pc(wuiBefore,wuiAfter):
     _, vulLabels = pd.qcut(df['pc'],nbins, retbins = True)
     vulLabels = np.round(vulLabels, 2)
     ts = pd.DataFrame(columns = vulLabels[:-1], index = [1990,2010])
-    thresh =0.4
     ctr = 0
     
     for (wuiName, popName) in zip(wuiNames, popNames):
@@ -103,25 +100,46 @@ def plot_wui_pc(wuiBefore,wuiAfter):
      
     # ts = ts.drop(2000)
     
+    return ts.diff(), colors, vulLabels
     
+    # fig, ax = plt.subplots(figsize = (3,3))
     
-    fig, ax = plt.subplots(figsize = (3,3))
+    # ax.bar(ts.columns,ts.diff().dropna().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels))
+    # ax.set_xlabel("Plant climate sensitvity")
+    # ax.set_ylabel("$\Delta$ WUI population")
     
-    ax.bar(ts.columns,ts.diff().dropna().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels))
-    ax.set_xlabel("Plant climate sensitvity")
-    ax.set_ylabel("$\Delta$ WUI population")
+    # ylabels = ['{:,.1f}'.format(x) + 'M' for x in ax.get_yticks()/1e6]
+    # ax.set_yticklabels(ylabels)
+    # ax.set_xlim(0,2.1)
+    # # Only show ticks on the left and bottom spines
+    # # Hide the right and top spines
+    # ax.spines['right'].set_visible(False)
+    # ax.spines['top'].set_visible(False)
     
-    ylabels = ['{:,.1f}'.format(x) + 'M' for x in ax.get_yticks()/1e6]
-    ax.set_yticklabels(ylabels)
-    ax.set_xlim(0,2.1)
-    # Only show ticks on the left and bottom spines
-    # Hide the right and top spines
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    
-save_path = os.path.join(dir_root, "data","WUI","arc_export","urban_thresh_cal")
-forestThresh = 0
-for urbanThresh in np.linspace(0.9,0.1,9):
-    plot_wui_pc(os.path.join(save_path, "wui%04d_%02d_%02d.tif"%(1992, forestThresh*100,round(urbanThresh*100))),\
-                os.path.join(save_path, "wui%04d_%02d_%02d.tif"%(2016, forestThresh*100,round(urbanThresh*100))))
-#    
+urbanThreshs = np.linspace(0.0,0.3,50)
+df = pd.DataFrame(index = urbanThreshs, columns = range(15))
+
+for urbanThresh in urbanThreshs:
+    print(urbanThresh)
+    df_ ,colors, vulLabels= calc_wui_pc(os.path.join(dir_root, "data","WUI","urban1992NeighborsResampledGee.tif"),\
+                    os.path.join(dir_root, "data","WUI","urban2016NeighborsResampledGee.tif"),\
+                    urbanThresh)
+    df.loc[urbanThresh, :] = df_.dropna().values
+          
+
+
+          
+df.columns = df_.columns
+fig, ax = plt.subplots(figsize = (3,3))
+
+ax.bar(df.columns,df.mean().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels), yerr = df.std())
+ax.set_xlabel("Plant climate sensitvity")
+ax.set_ylabel("$\Delta$ WUI population")
+
+ylabels = ['{:,.1f}'.format(x) + 'M' for x in ax.get_yticks()/1e6]
+ax.set_yticklabels(ylabels)
+ax.set_xlim(0,2.1)
+# Only show ticks on the left and bottom spines
+# Hide the right and top spines
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)

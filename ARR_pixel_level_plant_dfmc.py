@@ -28,6 +28,8 @@ from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 from matplotlib import ticker
 from matplotlib.colors import ListedColormap
+from pingouin import partial_corr
+
 
 sns.set(font_scale = 0.9, style = "ticks")
 
@@ -176,9 +178,9 @@ coefs_type = "positive"
 # for i in range(4, 0, -1):
 # create_time_df(hr = hr, folder = folder, maxLag = lag)
 
-# master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d"%(hr,lag)))
-# master.date = pd.to_datetime(master.date)
-# master = master.loc[master.date.dt.month>=6]
+master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d"%(hr,lag)))
+master.date = pd.to_datetime(master.date)
+master = master.loc[master.date.dt.month>=6]
 
 # # # #########
 # print('\r')
@@ -207,13 +209,14 @@ geotransform = ds.GetGeoTransform()
 
 #%% variants with coefs
 coefs = [x[1] for x in out]
+betas = [x[1:] for x in coefs]
 coefSum = [np.sum(x[1:]) for x in coefs]
 coefMax = [np.max(x[1:]) for x in coefs]
 coefRMS = [np.sqrt(np.sum([y**2 for y in x[1:]])) for x in coefs]
 coefRMS = np.clip(np.array(coefRMS), a_min = 0, a_max = 0.6)
 # coefPositiveSum = [np.sum([y for y in x[1:] if y>=0]) for x in coefs]
 coefAbsSum = [np.sum(np.abs(x[1:])) for x in coefs]
-
+coefMean = [np.mean(x[x!=0]) for x in betas]
 # coefDiff = [np.sum(x[1:5]) - np.sum(x[8:12]) for x in coefs]
 # coefAbsDiff = [np.sum(np.abs(x[1:5])) - np.sum(np.abs(x[8:12])) for x in coefs]
 
@@ -235,7 +238,7 @@ plantClimate = ndvi.copy()
 plantClimate[:,:] = np.nan
 plantClimate[y_loc, x_loc] = coefSum
 # plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
-savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefSum.tif"%(hr,lag,norm, coefs_type))
+savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefMean.tif"%(hr,lag,norm, coefs_type))
 # save_tif(plantClimate, geotransform, savepath)
 
 # plantClimate = ndvi.copy()
@@ -350,7 +353,7 @@ ax.add_collection(PatchCollection(patches, facecolor= 'lightgrey', edgecolor='k'
 cmap = ListedColormap(sns.color_palette("Set1").as_hex()[:-1])
 
 plot=m.scatter(x,y, zorder = 2, 
-                s=2,c=plantClimate,cmap= cmap ,linewidth = 0,\
+                s=2,c=plantClimate,cmap= "viridis" ,linewidth = 0,\
                     marker='s',latlon = True, vmin =0, vmax = 2)
 
 m.readshapefile('D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
@@ -375,14 +378,14 @@ plt.show()
 fig, ax = plt.subplots(figsize = (3,3))
 ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 # ax.set_xlim(0,1)
-ax.set_ylim(vmin, vmax)
+# ax.set_ylim(vmin, vmax)
 ax.set_xlabel("VPD (Hpa)")
 ax.set_ylabel(r'$\sum \beta^{+ve}$')
 ###############################################################################
 fig, ax = plt.subplots(figsize = (3,3))
 ax.scatter(ndvi, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 # ax.set_xlim(0,1)
-ax.set_ylim(vmin, vmax)
+# ax.set_ylim(vmin, vmax)
 ax.set_xlabel("NDVI")
 ax.set_ylabel(r'$\sum \beta^{+ve}$')
     
@@ -501,3 +504,70 @@ fig, ax = plt.subplots(figsize = (3,3))
 (df>0).mean().plot(kind = "bar",ax = ax)
 ax.set_xlabel("lag")
 ax.set_ylabel(r"fraction non-zero $\beta$")
+
+#%% 
+
+
+df = pd.DataFrame({"r2": [x[0] for x in out], "x_loc": [x[2] for x in out], "y_loc": [x[3] for x in out]  })
+toJoin = pd.DataFrame([x[1] for x in out])
+toJoin.drop(0,inplace = True, axis = 1)
+toJoin.columns = range(11)
+df = pd.concat([df,toJoin], axis = 1)
+df = pd.merge(df,master.loc[:,["x_loc","y_loc","pixel_index"]].drop_duplicates(),on = ["x_loc","y_loc"])
+df['coefSum'] = df.loc[:,range(11)].sum(axis = 1)
+
+
+nbins = 2
+cmap = plt.get_cmap('viridis',nbins)    # PiYG
+colors = [mpl.colors.rgb2hex(cmap(i))  for i in range(cmap.N)]
+markers = ["o","s","v"]
+inds = df.loc[(df.r2>=0.8),"pixel_index"]
+
+for ind_ in [60]:
+    ind = inds.iloc[ind_]
+    master = master.rename(columns = {"dfmc(t)":"dfmc(t-0)"})
+    subMaster = master.loc[master.pixel_index==ind]
+    subDf = df.loc[df.pixel_index==ind]
+
+    fig, ax = plt.subplots(figsize = (3,3))
+    ctr = 0
+    mctr = 0
+    for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(3).index:
+        if subDf[i].values[0]!=0:
+            sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker =markers[mctr] ,\
+                scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
+            mctr+=1
+    pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
+    ax.annotate('PAS=%0.2f'%pws,
+            xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
+    ax.set_xlabel("DFMC'")
+    ax.set_ylabel("LFMC'")
+    ax.set_title(ind_)
+    ax.set_ylim(-20,20)
+    ax.set_xlim(-5,5)
+    plt.show()
+    
+inds = df.loc[(df.r2<0.05),"pixel_index"]
+ctr+=1    
+for ind_ in [5]:
+    ind = inds.iloc[ind_]
+    master = master.rename(columns = {"dfmc(t)":"dfmc(t-0)"})
+    subMaster = master.loc[master.pixel_index==ind]
+    subDf = df.loc[df.pixel_index==ind]
+    fig, ax = plt.subplots(figsize = (3,3))
+    mctr=0   
+    for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(3).index:
+        if subDf[i].values[0]!=0:
+            sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker=markers[mctr], \
+                scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
+            mctr+=1
+    pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
+    ax.annotate('PAS=%0.2f'%pws,
+            xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
+    ax.set_xlabel("DFMC'")
+    ax.set_ylabel("LFMC'")
+    ax.set_title(ind_)
+    ax.set_ylim(-20,20)
+    ax.set_xlim(-5,5)
+    plt.show()
+        

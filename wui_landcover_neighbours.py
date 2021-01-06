@@ -30,7 +30,7 @@ def resample(fullfilename):
         data = dataset.read(
             out_shape=(
                 dataset.count,
-                int(675),
+                int(645),
                 int(870)
             ),
             resampling=Resampling.bilinear
@@ -88,7 +88,7 @@ def fill_neighbours(arr):
 
     # arr1 = (arr1>0)*1
 
-    return arr1[1:-1,1:-1]
+    return np.logical_and(np.logical_xor(arr1[1:-1,1:-1],arr),arr1[1:-1,1:-1])
 
 def subset_CA(wui):
     wuiCA = wui[200:450,:300]
@@ -113,10 +113,14 @@ for filename in filenames:
     inFileName = os.path.join(dir_root,"data","WUI","30m",filename)
     writeTif(wui.astype(np.uint8),outFileName, inFileName)
     print("reduce resolution")
-    resampled = resample(outFileName)
-    inFileName = os.path.join(dir_root,"data","WUI","urban1992.tif")
+    inFileName = outFileName
     outFileName = os.path.join(dir_root,"data","WUI","30m",filename[:-4]+"NeighborsResampled.tif")
-    writeTif(resampled,outFileName, inFileName)
+
+    gdal.Warp(outFileName, inFileName, xRes = 0.03588, yRes = 0.03588)
+    # resampled = resample(outFileName)
+    # inFileName = os.path.join(dir_root,"data","WUI","urban1992.tif")
+    # outFileName = os.path.join(dir_root,"data","WUI","30m",filename[:-4]+"NeighborsResampled.tif")
+    # writeTif(resampled[0],outFileName, inFileName)
     
 #     axs[ctr].imshow(wui, vmax = 1, vmin = 0)
 #     axs[ctr].set_title(1990+ctr*20)
