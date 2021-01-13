@@ -304,12 +304,12 @@ def landcoverizeUSA(array, area = None):
 
 
 hr = "100hr"
-var = "coefMean"
+var = "coefSum"
 lag = 6
 folder = "lfmc_dfmc_anomalies"
 norm = "lfmc_dfmc_norm"
 coefs_type = "positive"
-nLocal = 15
+nLocal = 10
 nGlobal = nLocal*len(ecoregions_dict)
 # for hr in ["1000hr", "100hr"]:
 #     for var in ["coefAbsSum", "coefSum","r2"]:
@@ -326,18 +326,19 @@ df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
 
 
 #%% main plot
-fig, ax = plt.subplots(figsize = (3,3))
+sns.set(style="ticks", font_scale=1.3)
+fig, ax = plt.subplots(figsize = (4,4))
 sns.regplot(x=plantClimate_seg, y=coefs,ax=ax, ci = 99.5, color = "grey")
 
-ax.errorbar(plantClimate_seg, coefs, yerr = stderrors, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
-ax.scatter(plantClimate_seg, coefs, s = 50, color = "k", edgecolor = "grey")
-# ax.set_xlabel(r"%s, %s"%(var, hr))
-# ax.set_xlabel(r"Mean VPD")
-ax.set_xlabel(r"$\sum\beta$")
-ax.set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
-# ax.set_title(norm)
+ax.errorbar(plantClimate_seg, coefs, yerr = stderrors, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 1,capsize = 3)
+ax.scatter(plantClimate_seg, coefs, s = 80, color = "k", edgecolor = "grey")
+
+ax.set_xlabel(r"PAS")
+ax.set_ylabel(r"$\frac{dBA}{dVPD}$")
 ax.set_xlim(0,2)
-print(df.corr()**2)
+slope, intercept, r_value, p_value, std_err = stats.linregress(plantClimate_seg,coefs)
+print(p_value)
+ax.annotate("$R^2$ = %0.2f\nP<0.0001"%(r_value**2),xycoords = "axes fraction",ha = "left", va = "top",xy =(0.1,0.9))
 plt.show()
 
 def bootstrap(x, y, yerr, samples = 100):
@@ -346,40 +347,44 @@ def bootstrap(x, y, yerr, samples = 100):
     
     return np.array(xboot), yboot
 #%% segregated plot
-# ctr=0
-# colors = ["seagreen","darkgoldenrod","limegreen"]
-# fig, axs = plt.subplots(1, 3,figsize = (9,3), sharey = True)
-# for quadrant in lc_dict.keys():
-#     # x, y = bootstrap(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]])
+ctr=0
+colors = ["seagreen","darkgoldenrod","limegreen"]
+fig, axs = plt.subplots(1, 3,figsize = (9,3), sharey = True)
+for quadrant in lc_dict.keys():
+    # x, y = bootstrap(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]])
     
-#     x = df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
-#     y = df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
-#     sns.regplot(x = x, y = y,ax=axs[ctr], color = colors[ctr],scatter_kws={'s':0}, ci = 99.5)
-#     axs[ctr].errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
-#     axs[ctr].scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
+    x = df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
+    y = df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
+    print(quadrant)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+    print(r_value**2)
+    print(p_value)
+    sns.regplot(x = x, y = y,ax=axs[ctr], color = colors[ctr],scatter_kws={'s':0}, ci = 99.5)
+    axs[ctr].errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
+    axs[ctr].scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
     
-#     # ax.set_xlabel(r"%s, %s"%(var, hr))
-#     # ax.set_xlabel(r"$\sum_{i=1}^5\frac{d(LFMC_t)}{d(DFMC_{t-i})}$")
-#     axs[ctr].set_xlabel(r"$\sum\beta$")
-#     axs[ctr].set_ylabel("")
-#     # ax.set_title(norm)
-#     axs[ctr].set_xlim(0,2)
-#     axs[ctr].legend()
+    # ax.set_xlabel(r"%s, %s"%(var, hr))
+    # ax.set_xlabel(r"$\sum_{i=1}^5\frac{d(LFMC_t)}{d(DFMC_{t-i})}$")
+    axs[ctr].set_xlabel(r"PAS")
+    axs[ctr].set_ylabel("")
+    # ax.set_title(norm)
+    axs[ctr].set_xlim(0,2)
+    axs[ctr].legend()
     
     
-#     # Hide the right and top spines
-#     axs[ctr].spines['right'].set_visible(False)
-#     axs[ctr].spines['top'].set_visible(False)
+    # Hide the right and top spines
+    axs[ctr].spines['right'].set_visible(False)
+    axs[ctr].spines['top'].set_visible(False)
     
-#     # Only show ticks on the left and bottom spines
-#     # axs[ctr].yaxis.set_ticks_position('left')
-#     # axs[ctr].xaxis.set_ticks_position('bottom')
+    # Only show ticks on the left and bottom spines
+    # axs[ctr].yaxis.set_ticks_position('left')
+    # axs[ctr].xaxis.set_ticks_position('bottom')
 
-#     ctr+=1
-# axs[0].set_ylim(0,700)
-# axs[0].set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
+    ctr+=1
+axs[0].set_ylim(0,700)
+axs[0].set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
 
-# # # axs[ctr].legend(bbox_to_anchor=[1, 1],loc = "upper left")
+# # axs[ctr].legend(bbox_to_anchor=[1, 1],loc = "upper left")
     
 
 #%% Only plant plot
@@ -395,31 +400,31 @@ def bootstrap(x, y, yerr, samples = 100):
 #     axs[ctr].set_xticklabels([ecoregions_dict[quadrant]])
 #     ctr+=1
 # # ax.set_xlabel(r"%s, %s"%(var, hr))
-# axs[0].set_ylabel(r"$\sum\beta$")
+# axs[0].set_ylabel(r"PAS")
 # ax.set_title(norm)
 # plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
 
 
 #%% only fire plot
-bas,stderrors = segregate_fire(areas)
-df = pd.DataFrame({"x":plantClimate_seg,"y":bas})
+# bas,stderrors = segregate_fire(areas)
+# df = pd.DataFrame({"x":plantClimate_seg,"y":bas})
 
-ctr=0
-n=10
+# ctr=0
+# n=10
 
-fig, ax = plt.subplots(figsize = (3,3))
-sns.regplot(x=plantClimate_seg, y=bas,ax=ax, color = "darkgrey")
+# fig, ax = plt.subplots(figsize = (3,3))
+# sns.regplot(x=plantClimate_seg, y=bas,ax=ax, color = "darkgrey")
 
-# ax.errorbar(plantClimate_seg, bas, yerr = stderrors, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
-ax.scatter(plantClimate_seg, bas, s = 50, color = "k", edgecolor = "grey")
-ax.set_xlabel(r"%s, %s"%(var, hr))
-ax.set_xlabel(r"$\sum \beta$")
-ax.set_xlim(0,2)
-# ax.set_xlabel(r"Mean VPD")
-ax.set_ylabel(r"BA (km$^2$)")
-# ax.set_title(norm)
+# # ax.errorbar(plantClimate_seg, bas, yerr = stderrors, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
+# ax.scatter(plantClimate_seg, bas, s = 50, color = "k", edgecolor = "grey")
+# ax.set_xlabel(r"%s, %s"%(var, hr))
+# ax.set_xlabel(r"PAS")
+# ax.set_xlim(0,2)
+# # ax.set_xlabel(r"Mean VPD")
+# ax.set_ylabel(r"BA (km$^2$)")
+# # ax.set_title(norm)
 
-plt.show()
+# plt.show()
 
 
 #%% only fire plot segregated
@@ -484,80 +489,80 @@ plt.show()
 #%% plantclimate and landcover
 
 
-# ds = gdal.Open(plantClimatePath)
-# plantClimateMap = np.array(ds.GetRasterBand(1).ReadAsArray())
+ds = gdal.Open(plantClimatePath)
+plantClimateMap = np.array(ds.GetRasterBand(1).ReadAsArray())
 
-# plantClimateQuadrant = ecoregionalizeUSA(plantClimateMap, area = 8)
+plantClimateQuadrant = ecoregionalizeUSA(plantClimateMap, area = 8)
+fig, ax = plt.subplots(figsize = (3,3))
+ax.imshow(plantClimateQuadrant)
+plt.axis('off')
+
+ds = gdal.Open(r"D:\Krishna\projects\wildfire_from_lfmc\data\mean\landcover.tif")
+lcMap = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
+
+mask = np.ones_like(lcMap, np.bool)
+mask[np.isin(lcMap, list(lc_dict.keys()))] = 0
+lcMap[mask] = np.nan
+
+lcQuadrant = ecoregionalizeUSA(lcMap, area = 8)
+fig, ax = plt.subplots(figsize = (3,3))
+plot = ax.imshow(lcQuadrant, cmap = "Accent")
+plt.axis('off')
+plt.colorbar(plot)
+
+
 # fig, ax = plt.subplots(figsize = (3,3))
-# ax.imshow(plantClimateQuadrant)
-# plt.axis('off')
+# ax.scatter(plantClimateQuadrant.flatten(),lcQuadrant.flatten(),  s = 0.01, alpha = 0.1, color = "k")
+# ax.set_ylabel("LC")
 
-# ds = gdal.Open(r"D:\Krishna\projects\wildfire_from_lfmc\data\mean\landcover.tif")
-# lcMap = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
+# # ax.set_xlim(0.6,1.2)
+# ax.set_xlabel("Plant climate sensitivity")
 
-# mask = np.ones_like(lcMap, np.bool)
-# mask[np.isin(lcMap, list(lc_dict.keys()))] = 0
-# lcMap[mask] = np.nan
-
-# lcQuadrant = ecoregionalizeUSA(lcMap, area = 8)
-# fig, ax = plt.subplots(figsize = (3,3))
-# plot = ax.imshow(lcQuadrant, cmap = "Accent")
-# plt.axis('off')
-# plt.colorbar(plot)
-
-
-# # fig, ax = plt.subplots(figsize = (3,3))
-# # ax.scatter(plantClimateQuadrant.flatten(),lcQuadrant.flatten(),  s = 0.01, alpha = 0.1, color = "k")
-# # ax.set_ylabel("LC")
-
-# # # ax.set_xlim(0.6,1.2)
-# # ax.set_xlabel("Plant climate sensitivity")
-
-# ctr=20
-# fig, ax = plt.subplots(figsize = (3,3))
-# for area in areas[20:]:
-#     lc = stats.mode(lcMap[area==True], axis = None).mode[0]
-#     pc = plantClimate_seg[ctr]
-#     ax.scatter(pc,lc,color = u'#2ca02c')
-#     ctr+=1
-# ax.set_xlim(0,2)
-# ax.set_xlabel("plantClimate")
-# ax.set_ylabel("Majority land cover")
-# ax.set_yticks([130,140])
-# ax.set_yticklabels(["shrubs","grass"])
+ctr=20
+fig, ax = plt.subplots(figsize = (3,3))
+for area in areas[20:]:
+    lc = stats.mode(lcMap[area==True], axis = None).mode[0]
+    pc = plantClimate_seg[ctr]
+    ax.scatter(pc,lc,color = u'#2ca02c')
+    ctr+=1
+ax.set_xlim(0,2)
+ax.set_xlabel("plantClimate")
+ax.set_ylabel("Majority land cover")
+ax.set_yticks([130,140])
+ax.set_yticklabels(["shrubs","grass"])
     
 #%% ndvi prior precip
 
-r2,coefs, stderrors = segregate_ndviPpt(areas)
+# r2,coefs, stderrors = segregate_ndviPpt(areas)
 
-df = pd.DataFrame({"x":plantClimate_seg,"y":r2})
+# df = pd.DataFrame({"x":plantClimate_seg,"y":r2})
 
-ctr=0
-fig, ax = plt.subplots(figsize = (3,3))
-for quadrant in lc_dict.keys():
+# ctr=0
+# fig, ax = plt.subplots(figsize = (3,3))
+# for quadrant in lc_dict.keys():
 
-    # ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
-    ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
-    ctr+=1
-ax.set_xlabel(r"Plant climate sensitivity")
-ax.set_ylabel(r"r$^2$(PPT$_{t-1}$, NDVI$_t$)")
+#     # ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
+#     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
+#     ctr+=1
+# ax.set_xlabel(r"Plant climate sensitivity")
+# ax.set_ylabel(r"r$^2$(PPT$_{t-1}$, NDVI$_t$)")
 
-plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
+# plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
 
 
-df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
+# df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
 
-ctr=0
-fig, ax = plt.subplots(figsize = (3,3))
-for quadrant in lc_dict.keys():
+# ctr=0
+# fig, ax = plt.subplots(figsize = (3,3))
+# for quadrant in lc_dict.keys():
 
-    ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
-    ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
-    ctr+=1
-ax.set_xlabel(r"Plant climate sensitivity")
-ax.set_ylabel(r"$\frac{dNDVI_{t}}{dPPT_{t-1}}$")
+#     ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
+#     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
+#     ctr+=1
+# ax.set_xlabel(r"Plant climate sensitivity")
+# ax.set_ylabel(r"$\frac{dNDVI_{t}}{dPPT_{t-1}}$")
 
-plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
+# plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
 
 #%% ndvi ba
 

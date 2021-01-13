@@ -96,7 +96,7 @@ def subset_CA(wui):
     
 sns.set(font_scale = 1.1, style = "ticks")
 
-filenames = ["urban2016mosaic.tif","urban1992mosaic.tif"]
+filenames = ["urban2001mosaic.tif"]
 
 # fig, axs = plt.subplots(1,2,figsize = (6,3))
 ctr = 0
@@ -113,10 +113,10 @@ for filename in filenames:
     inFileName = os.path.join(dir_root,"data","WUI","30m",filename)
     writeTif(wui.astype(np.uint8),outFileName, inFileName)
     print("reduce resolution")
-    inFileName = outFileName
-    outFileName = os.path.join(dir_root,"data","WUI","30m",filename[:-4]+"NeighborsResampled.tif")
+#    inFileName = outFileName
+#    outFileName = os.path.join(dir_root,"data","WUI","30m",filename[:-4]+"NeighborsResampled.tif")
 
-    gdal.Warp(outFileName, inFileName, xRes = 0.03588, yRes = 0.03588)
+#    gdal.Warp(outFileName, inFileName, xRes = 0.03588, yRes = 0.03588)
     # resampled = resample(outFileName)
     # inFileName = os.path.join(dir_root,"data","WUI","urban1992.tif")
     # outFileName = os.path.join(dir_root,"data","WUI","30m",filename[:-4]+"NeighborsResampled.tif")

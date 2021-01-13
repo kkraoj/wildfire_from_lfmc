@@ -13,7 +13,7 @@ sns.set(font_scale = 1.1, style = "ticks")
 def calc_wui_pc(wuiBefore,wuiAfter,wuiThresh):
         
     wuiNames = [wuiBefore, wuiAfter]
-    popNames = ["pop1990.tif","pop2010.tif"]
+    popNames = ["pop2000.tif","pop2010.tif"]
     
     res = 3.5932611
     plantClimatePath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_anomalies","lfmc_dfmc_100hr_lag_6_lfmc_dfmc_norm_positive_coefSum.tif")
@@ -116,12 +116,12 @@ def calc_wui_pc(wuiBefore,wuiAfter,wuiThresh):
     # ax.spines['right'].set_visible(False)
     # ax.spines['top'].set_visible(False)
     
-urbanThreshs = np.linspace(0.0,0.3,50)
+urbanThreshs = np.linspace(0.0,0.03,10)
 df = pd.DataFrame(index = urbanThreshs, columns = range(15))
 
 for urbanThresh in urbanThreshs:
     print(urbanThresh)
-    df_ ,colors, vulLabels= calc_wui_pc(os.path.join(dir_root, "data","WUI","urban1992NeighborsResampledGee.tif"),\
+    df_ ,colors, vulLabels= calc_wui_pc(os.path.join(dir_root, "data","WUI","urban2001NeighborsResampledGee.tif"),\
                     os.path.join(dir_root, "data","WUI","urban2016NeighborsResampledGee.tif"),\
                     urbanThresh)
     df.loc[urbanThresh, :] = df_.dropna().values

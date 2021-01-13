@@ -17,12 +17,12 @@ arcpy.env.overwriteOutput=True
 
 
 files =""
-for file in glob.glob(os.path.join(dir_root, "data","WUI","30m","urban1992*.tif")):
+for file in glob.glob(os.path.join(dir_root, "data","WUI","30m","urban2011*.tif")):
     files = files+file+";"
 files = files[:-1]
 arcpy.env.workspace = os.path.join(dir_root, "data","WUI","30m")
 
 ##Mosaic several TIFF images to a new TIFF image
 print("[INFO] Mosaic started at %s"%datetime.now().strftime("%H:%M:%S"))
-arcpy.MosaicToNewRaster_management(files,os.path.join(dir_root, "data","WUI","30m"), "urban1992mosaic.tif", number_of_bands = 1)
+arcpy.MosaicToNewRaster_management(files,os.path.join(dir_root, "data","WUI","30m"), "urban2011mosaic.tif", number_of_bands = 1)
 print("[INFO] Mosaic done at %s"%datetime.now().strftime("%H:%M:%S"))

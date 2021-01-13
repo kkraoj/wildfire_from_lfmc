@@ -33,7 +33,7 @@ vpd = np.array(ds.GetRasterBand(1).ReadAsArray())
 
 fullfilename = os.path.join(dir_root, "data","mean","vpd_mean.tif")
 ds = gdal.Open(fullfilename)
-vpd /= np.array(ds.GetRasterBand(1).ReadAsArray())/100
+# vpd /= np.array(ds.GetRasterBand(1).ReadAsArray())/100
 
 fullfilename = os.path.join(dir_root, "data","mean","landcover.tif")
 ds = gdal.Open(fullfilename)
@@ -53,7 +53,7 @@ ax.hist2d(x = df.sigma, y = df.vpdTrend, bins=(res, res), vmax = 2e2, vmin = 0, 
 ax.set_xlabel("PAS")
 ax.set_ylabel("VPD Trend (%/yr)")
 ax.set_xlim(0,2)
-ax.set_ylim(-1,1)
+ax.set_ylim(-.05,0.15)
 ax.axvline(x = df.sigma.mean(), color = "lightgrey", linestyle = "--", linewidth = 2)
 ax.axhline(y = df.vpdTrend.mean(), color = "lightgrey", linestyle = "--", linewidth = 2)
 
@@ -76,47 +76,36 @@ ax.annotate("%d %%"%(df[(df['vpdTrend']>=df['vpdTrend'].mean())&(df['sigma']<=df
 
 # geyser = sns.load_dataset("geyser")
 # sns.kdeplot(data=geyser, x="waiting", y="duration")
-mycmap = sns.diverging_palette(240, 10, as_cmap=True)
-negThresh = df.loc[df['vpdTrend']<0,'vpdTrend'].mean()
-posThresh = df.loc[df['vpdTrend']>0,'vpdTrend'].mean()
 
+cuts = [df.vpdTrend.min(),0,0.05,0.1,0.15]
+bins = len(cuts)-1
+colors = sns.diverging_palette(240, 10,n=(bins-1)*2).as_hex()
+
+colors = [colors[0]]+colors[-bins+1:]
 fig, ax = plt.subplots(figsize =(2,3))
-colors = sns.diverging_palette(240, 10,n=4).as_hex()
-
-# sns.kdeplot(data= df[(df['vpdTrend']<0)].sigma, ax = ax, color = colors[0], label = "-ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']<df['vpdTrend'].mean())&(df['vpdTrend']>=0)].sigma,  ax = ax, color = colors[1], alpha = 0.5, label = "Below average +ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']>=df['vpdTrend'].mean())].sigma, ax = ax, color = colors[1], label = "Above average +ve VPD trend")
-
-sns.kdeplot(data= df[(df['vpdTrend']<negThresh)], y = "sigma",ax = ax, color = colors[0])
-sns.kdeplot(data= df[(df['vpdTrend']>=negThresh)&(df['vpdTrend']<0)], y = "sigma",  ax = ax, color = colors[1])
-sns.kdeplot(data= df[(df['vpdTrend']<posThresh)&(df['vpdTrend']>=0)], y = "sigma",  ax = ax, color = colors[2])
-sns.kdeplot(data= df[df['vpdTrend']>=posThresh], y = "sigma", ax = ax, color = colors[3])
+for i in range(len(cuts)-1):
+    minVal = cuts[i]
+    maxVal = cuts[i+1]
+    data = df.loc[(df.vpdTrend>=minVal)&(df.vpdTrend<maxVal)]
+    print(len(data.sigma))
+    sns.kdeplot(data = data,y="sigma",ax = ax, color = colors[i],linewidth = 3)
 
 ax.set_ylabel("PAS")
 ax.set_xlabel("Density")
 ax.set_ylim(0,2.5)
-ax.set_xticks([0,0.5,1,1.5])
+ax.set_xticks([0,0.5,1,1.5,2])
 # ax.legend(bbox_to_anchor = [0.5,-0.2], loc = "upper center")
 
 # %% VPD sigma box plot
+ndf = pd.DataFrame(columns = range(len(cuts)-1), index = range(df.shape[0]))
+for i in range(len(cuts)-1):
+    minVal = cuts[i]
+    maxVal = cuts[i+1]
+    data = df.loc[(df.vpdTrend>=minVal)&(df.vpdTrend<maxVal)]
+    ndf.loc[0:len(data.sigma)-1,i] = data.sigma.values
+ndf.dropna(inplace = True,how = "all")
+
 fig, ax = plt.subplots(figsize =(1,3))
-colors = sns.diverging_palette(240, 10,n=4).as_hex()
-cmap = LinearSegmentedColormap.from_list(
-        "mycmap", colors, N=4)
-# sns.kdeplot(data= df[(df['vpdTrend']<0)].sigma, ax = ax, color = colors[0], label = "-ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']<df['vpdTrend'].mean())&(df['vpdTrend']>=0)].sigma,  ax = ax, color = colors[1], alpha = 0.5, label = "Below average +ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']>=df['vpdTrend'].mean())].sigma, ax = ax, color = colors[1], label = "Above average +ve VPD trend")
-
-
-ndf = pd.DataFrame({-3:df[(df['vpdTrend']<negThresh)].sigma,
-                    -1: df[(df['vpdTrend']>=negThresh)&(df['vpdTrend']<0)].sigma,
-                    1:df[(df['vpdTrend']<posThresh)&(df['vpdTrend']>=0)].sigma,
-                    3:df[df['vpdTrend']>=posThresh].sigma})
-# sns.boxplot(data= df[(df['vpdTrend']<negThresh)], y = "sigma", ax = ax, color = colors[0])
-# sns.boxplot(data= df[(df['vpdTrend']>=negThresh)&(df['vpdTrend']<0)], y = "sigma",  ax = ax, color = colors[1])
-# sns.boxplot(data= df[(df['vpdTrend']<posThresh)&(df['vpdTrend']>=0)], y = "sigma",  ax = ax, color = colors[2])
-# sns.boxplot(data= df[df['vpdTrend']>=posThresh], y = "sigma", ax = ax, color = colors[3])
-
 sns.boxplot(data= ndf, ax = ax,palette = colors,saturation = 1,width = 0.8,fliersize = 0)
 
 ax.set_ylabel("")

@@ -23,7 +23,8 @@ import matplotlib as mpl
 import matplotlib.ticker as mtick
 import matplotlib.colors as colors
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-
+from plotmap import plotmap
+from scipy.ndimage.filters import gaussian_filter
 
 
 
@@ -34,8 +35,9 @@ def subset_CA(wui):
     return wuiCA
     
 sns.set(font_scale = 1.1, style = "ticks")
-wuiNames = ["urban1992NeighborsResampledGee.tif","urban2016NeighborsResampledGee.tif"]
-popNames = ["pop1990.tif","pop2010.tif"]
+wuiNames = ["urban2001NeighborsResampledGee.tif","urban2016NeighborsResampledGee.tif"]
+# popNames = ["pop2000.tif","pop2010.tif"]
+popNames = ["worldPopDensity2000.tif","worldPopDensity2015.tif"]
 
 res = 3.5932611
 plantClimatePath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_anomalies","lfmc_dfmc_100hr_lag_6_lfmc_dfmc_norm_positive_coefSum.tif")
@@ -46,7 +48,7 @@ plantClimate = np.array(ds.GetRasterBand(1).ReadAsArray())
 #%% % absolute population timeseries split by pc quantiles
 
 ctr = 0
-wuiThresh = 0
+wuiThresh = 0.1
 for (wuiName, popName) in zip(wuiNames, popNames):
     
     fullfilename = os.path.join(dir_root, "data","WUI",wuiName)
@@ -67,8 +69,7 @@ for (wuiName, popName) in zip(wuiNames, popNames):
     # pop = pop*wui
     wui = wui>wuiThresh
 
-    toplot = plantClimate.copy()
-    # toplot[wui==0] = np.nan
+   
     # # pc[pc<=np.nanquantile(pc,0.75)] = np.nan
     # plt.hist(toplot)
     # plt.show()
@@ -93,33 +94,53 @@ for (wuiName, popName) in zip(wuiNames, popNames):
     df.dropna(inplace = True)
     ctr+=1
     
-
-    gt = ds.GetGeoTransform()
-    from plotmap import plotmap
-    map_kwargs = dict(llcrnrlon=-119,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
-            projection='lcc',lat_1=33,lat_2=45,lon_0=-95)
-    scatter_kwargs = dict(cmap = "viridis",vmin = 0, vmax = 2,alpha = 0)
-    fig, ax, m, plot = plotmap(gt = gt, var = toplot,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 0.1, 
-                          fill = "white",background="white",
-                          shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\states",shapefilename ='states')
     wui = wui*1.0
-    # wui[wui<1] = np.nan
-    scatter_kwargs = dict(cmap = "Greys_r",vmin = 0, vmax = 1)
-    # divider = make_axes_locatable(ax)
-    # cax = divider.append_axes('right', size='5%', pad=0.05)
-    # fig.colorbar(plot, cax=cax, orientation='vertical')
-    # cax.set_title("WUI 1992")
+        
+    if wuiName == "urban2001NeighborsResampledGee.tif":
+        wui1990 = wui.copy()
+    else:
+        wui2010 = wui.copy()
+    # break
+
+wuiDiff = wui2010-wui1990
+wuiDiff[wuiDiff<0] = 0
+wuiDiff[wuiDiff<1] = np.nan
+gt = ds.GetGeoTransform()
+map_kwargs = dict(llcrnrlon=-119,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
+        projection='lcc',lat_1=33,lat_2=45,lon_0=-95)
+
+scatter_kwargs = dict(cmap = "Oranges",vmin = 0, vmax = 1,alpha = 0.05)
+fig, ax, m, plot = plotmap(gt = gt, var = wuiDiff,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 0.2, 
+                      fill = "white",background="white",
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+data = np.nan_to_num(plantClimate,nan = -9999)
+data = gaussian_filter(data, sigma = 3,order = 0)
+data[data<0] = np.nan
+# plt.imshow(data,cmap = "viridis")
+
+fig, ax, m, plot = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
+                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = np.nanquantile(data,0.9),
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+plt.show()
+
+scatter_kwargs = dict(cmap = "viridis",vmin = 0, vmax = 2,alpha = 1)
+fig, ax, m, plot = plotmap(gt = gt, var = plantClimate,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 0.2, 
+                      fill = "white",background="white",
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+data = np.nan_to_num(wuiDiff,nan = -9999)
+data = gaussian_filter(data, sigma = 3,order = 0)
+# data[data<0] = np.nan
+# plt.imshow(data,cmap = "viridis")
+
+fig, ax, m, plot = plotmap(gt = gt,  contourColor = "orange",var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
+                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = np.nanquantile(data,0.9),
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+plt.show()
+
+
     
-    fig, ax, m, plot = plotmap(gt = gt, var = wui,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 0.1, 
-                          fill = "white",background="white",ax = ax, fig = fig, contour = True,
-                          shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\states",shapefilename ='states')
-            
-
-    plt.show()
-    
-    break
-
-
 #%% growth rates for 10 bins
 
 
@@ -195,7 +216,7 @@ ax.spines['top'].set_color('none')
 
 fig, ax = plt.subplots(figsize = (3,3))
 
-ax.bar(ts.columns,ts.diff().dropna().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels))
+ax.bar(ts.columns,ts.diff().dropna().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels),edgecolor = "k")
 ax.set_xlabel("PAS")
 ax.set_ylabel("$\Delta$ WUI population")
 
@@ -206,3 +227,50 @@ ax.set_xlim(0,2.1)
 # Hide the right and top spines
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
+
+ax2 = ax.twinx()
+ax2.plot(xs,density(xs), linewidth = 3, color = "grey")
+# for q in [0.0,0.25,0.5,0.75]:
+ctr=0
+for q in vulLabels[:-1]:
+    low = q 
+    high = vulLabels[ctr+1]
+    xsq = xs[(xs>=low)&(xs<=high)]
+    densityq = density(xsq)
+    ax2.fill_between(xsq, 0, densityq, facecolor = colors[ctr],  linewidth = 1.5,edgecolor = "grey")
+    ctr+=1
+ax2.set_ylabel("Density          ",ha ="right",color = "grey")
+ax2.set_ylim(0,3.5)
+ax2.set_yticks([0,0.5,1])
+ax2.spines['left'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+
+ax2.spines['bottom'].set_color('grey')
+ax2.spines['top'].set_color('grey') 
+ax2.spines['right'].set_color('grey')
+ax2.spines['left'].set_color('grey')
+ax2.tick_params(axis='y', colors='grey')
+
+wui1990[wui1990<1] = np.nan
+fig, ax, m, plot = plotmap(gt = gt,  var = wui1990,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 0.01, 
+                      fill = "white",background="white",
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+wui2010[wui2010<1] = np.nan
+fig, ax, m, plot = plotmap(gt = gt,  var = wui2010,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 0.01, 
+                      fill = "white",background="white",
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+plt.show()
+
+## 30m data m
+
+# plantClimatePath = os.path.join(dir_root, "data","WUI","30m","urban2001mosaicNeighbors.tif")
+# ds = gdal.Open(plantClimatePath)
+# data = np.array(ds.GetRasterBand(1).ReadAsArray())
+# print(data.sum()*30*30/1000/1000)
+
+# plantClimatePath = os.path.join(dir_root, "data","WUI","30m","urban2016mosaicNeighbors.tif")
+# ds = gdal.Open(plantClimatePath)
+# data = np.array(ds.GetRasterBand(1).ReadAsArray())
+# print(data.sum()*30*30/1000/1000)
