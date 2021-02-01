@@ -376,7 +376,7 @@ plt.show()
 
 
 # ###############################################################################
-###PAS vs rest
+###PWS vs rest
 def clean (x, y):
     inds = np.isnan(x)
     x = x[~inds]
@@ -394,19 +394,19 @@ ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 ax.set_ylim(0,2)
 x,y = clean(vpd,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PAS and VPD mean = %0.3f"%r_value**2)
+print("R2 for PWS and VPD mean = %0.3f"%r_value**2)
 ax.set_xlabel("VPD (Hpa)")
-ax.set_ylabel(r'PAS')
+ax.set_ylabel(r'PWS')
 ###############################################################################
 fig, ax = plt.subplots(figsize = (3,3))
 ax.scatter(ndvi, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 x,y = clean(ndvi,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PAS and NDVI = %0.3f"%r_value**2)
+print("R2 for PWS and NDVI = %0.3f"%r_value**2)
 # ax.set_xlim(0,1)
 ax.set_ylim(0,2)
 ax.set_xlabel("NDVI")
-ax.set_ylabel(r'PAS')
+ax.set_ylabel(r'PWS')
 
 ################################
 filename = os.path.join(dir_root, "data","mean","vpdMax.tif")
@@ -419,14 +419,14 @@ ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 ax.set_ylim(0,2)
 x,y = clean(vpd,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PAS and VPD max = %0.3f"%r_value**2)
+print("R2 for PWS and VPD max = %0.3f"%r_value**2)
 ax.set_xlabel("Max VPD (Hpa)")
-ax.set_ylabel(r'PAS')
+ax.set_ylabel(r'PWS')
 
 
 
 ################################
-filename = os.path.join(dir_root, "data","mean","vpdMin.tif")
+filename = os.path.join(dir_root, "data","mean","vpdStd.tif")
 ds = gdal.Open(filename)
 vpd = np.array(ds.GetRasterBand(1).ReadAsArray())
 
@@ -436,9 +436,9 @@ ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 ax.set_ylim(0,2)
 x,y = clean(vpd,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PAS and VPD min = %0.3f"%r_value**2)
-ax.set_xlabel("Min VPD (Hpa)")
-ax.set_ylabel(r'PAS')
+print("R2 for PWS and VPD std = %0.3f"%r_value**2)
+ax.set_xlabel("VPD s.d. (Hpa)")
+ax.set_ylabel(r'PWS')
     
 
 ################################
@@ -452,9 +452,9 @@ ax.scatter(data, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 ax.set_ylim(0,2)
 x,y = clean(data,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PAS and fire season length = %0.3f"%r_value**2)
+print("R2 for PWS and fire season length = %0.3f"%r_value**2)
 ax.set_xlabel("Fire season length (days)")
-ax.set_ylabel(r'PAS')
+ax.set_ylabel(r'PWS')
 ##fire season length calculated as number of days in a year when VPD > long term mean for that pixel")
 
 
@@ -571,77 +571,81 @@ ax.set_ylabel(r'PAS')
 # ax.set_xlabel("lag")
 # ax.set_ylabel(r"fraction non-zero $\beta$")
 
-#%% PAS computation figures
+#%% PWS computation figures
     
+sns.set(font_scale = 1.5, style = "ticks")
 
-# df = pd.DataFrame({"r2": [x[0] for x in out], "x_loc": [x[2] for x in out], "y_loc": [x[3] for x in out]  })
-# toJoin = pd.DataFrame([x[1] for x in out])
-# toJoin.drop(0,inplace = True, axis = 1)
-# toJoin.columns = range(11)
-# df = pd.concat([df,toJoin], axis = 1)
-# df = pd.merge(df,master.loc[:,["x_loc","y_loc","pixel_index"]].drop_duplicates(),on = ["x_loc","y_loc"])
-# df['coefSum'] = df.loc[:,range(11)].sum(axis = 1)
-# master = master.rename(columns = {"dfmc(t)":"dfmc(t-0)"})
+df = pd.DataFrame({"r2": [x[0] for x in out], "x_loc": [x[2] for x in out], "y_loc": [x[3] for x in out]  })
+toJoin = pd.DataFrame([x[1] for x in out])
+toJoin.drop(0,inplace = True, axis = 1)
+toJoin.columns = range(11)
+df = pd.concat([df,toJoin], axis = 1)
+df = pd.merge(df,master.loc[:,["x_loc","y_loc","pixel_index"]].drop_duplicates(),on = ["x_loc","y_loc"])
+df['coefSum'] = df.loc[:,range(11)].sum(axis = 1)
+master = master.rename(columns = {"dfmc(t)":"dfmc(t-0)"})
 
 
-# nbins = 2
-# cmap = plt.get_cmap('viridis',nbins)    # PiYG
-# colors = [mpl.colors.rgb2hex(cmap(i))  for i in range(cmap.N)]
-# inds = df.loc[(df.r2>=0.8),"pixel_index"]
+nbins = 2
+cmap = plt.get_cmap('viridis',nbins)    # PiYG
+colors = [mpl.colors.rgb2hex(cmap(i))  for i in range(cmap.N)]
+inds = df.loc[(df.r2>=0.8),"pixel_index"]
 
-# for ind_ in [60]:
-#     ind = inds.iloc[ind_]
-#     subMaster = master.loc[master.pixel_index==ind]
-#     subDf = df.loc[df.pixel_index==ind]
-#     fig, ax = plt.subplots(figsize = (3,3))
+for ind_ in [60]:
+    ind = inds.iloc[ind_]
+    subMaster = master.loc[master.pixel_index==ind]
+    subDf = df.loc[df.pixel_index==ind]
+    fig, ax = plt.subplots(figsize = (3,3))
 
-#     ctr = 0
-#     mctr = 0
-#     for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(11).index:
-#         if subDf[i].values[0]!=0:
+    ctr = 0
+    mctr = 0
+    for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(1).index:
+        if subDf[i].values[0]!=0:
 
-#             sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker ="o" ,\
-#                 scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
-#             xs = np.array([-5,5])
-#             ys = xs*subDf[i].values[0]
-#             ax.plot(xs,ys,"--")
-#             # mctr+=1
-#             pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
-#             ax.annotate('PAS=%0.2f'%pws,
-#             xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
-#             ax.set_xlabel("DFMC'")
-#             ax.set_ylabel("LFMC'")
-#             ax.set_title(ind_)  
-#             ax.set_ylim(-20,20)
-#             ax.set_xlim(-5,5)
-#             ax.set_title("")
-#             plt.show()
+            sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker ="o" ,\
+                scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
+            # xs = np.array([-5,5])
+            # ys = xs*subDf[i].values[0]
+            # ax.plot(xs,ys,"--")
+            # mctr+=1
+            pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
+            ax.annotate('PWS=%0.2f'%pws,
+            xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
+            ax.set_xlabel("DFMC'")
+            ax.set_ylabel("LFMC'")
+            ax.set_title(ind_)  
+            ax.set_ylim(-20,20)
+            ax.set_xlim(-5,5)
+            ax.set_xticks([-5,-2.5,0,2.5,5])
+
+            ax.set_title("")
+            plt.show()
     
-# inds = df.loc[(df.r2<0.05),"pixel_index"]
-# ctr+=1    
-# for ind_ in [5]:
-#     ind = inds.iloc[ind_]
-#     subMaster = master.loc[master.pixel_index==ind]
-#     subDf = df.loc[df.pixel_index==ind]
-#     fig, ax = plt.subplots(figsize = (3,3))
-#     mctr=0   
-#     for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(1).index:
-#         if subDf[i].values[0]!=0:
-#             sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker="o", \
-#                 scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
-#             mctr+=1
-#     pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
-#     ax.annotate('PAS=%0.2f'%pws,
-#             xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
-#     ax.set_xlabel("DFMC'")
-#     ax.set_ylabel("LFMC'")
-#     ax.set_title(ind_)
-#     ax.set_ylim(-20,20)
-#     ax.set_title("")
-#     ax.set_xlim(-5,5)
-#     plt.show()
+inds = df.loc[(df.r2<0.05),"pixel_index"]
+ctr+=1    
+for ind_ in [5]:
+    ind = inds.iloc[ind_]
+    subMaster = master.loc[master.pixel_index==ind]
+    subDf = df.loc[df.pixel_index==ind]
+    fig, ax = plt.subplots(figsize = (3,3))
+    mctr=0   
+    for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(1).index:
+        if subDf[i].values[0]!=0:
+            sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker="o", \
+                scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
+            mctr+=1
+    pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
+    ax.annotate('PWS=%0.2f'%pws,
+            xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
+    ax.set_xlabel("DFMC'")
+    ax.set_ylabel("LFMC'")
+    ax.set_title(ind_)
+    ax.set_ylim(-20,20)
+    ax.set_title("")
+    ax.set_xlim(-5,5)
+    ax.set_xticks([-5,-2.5,0,2.5,5])
+    plt.show()
 
-#%% PAS calculation time series plot
+# %% PWS calculation time series plot
 
 # for ind_ in [60,5]:
 #     ind = inds.iloc[ind_]

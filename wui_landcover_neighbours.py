@@ -96,7 +96,7 @@ def subset_CA(wui):
     
 sns.set(font_scale = 1.1, style = "ticks")
 
-filenames = ["urban2001mosaic.tif"]
+filenames = ["urban2006mosaic.tif","urban2011mosaic.tif"]
 
 # fig, axs = plt.subplots(1,2,figsize = (6,3))
 ctr = 0

@@ -76,21 +76,33 @@ ax.annotate("%d %%"%(df[(df['vpdTrend']>=df['vpdTrend'].mean())&(df['sigma']<=df
 
 # geyser = sns.load_dataset("geyser")
 # sns.kdeplot(data=geyser, x="waiting", y="duration")
-mycmap = sns.diverging_palette(240, 10, as_cmap=True)
-negThresh = df.loc[df['vpdTrend']<0,'vpdTrend'].mean()
-posThresh = df.loc[df['vpdTrend']>0,'vpdTrend'].mean()
 
+cuts = [df.vpdTrend.min(),0,0.25,0.5,1]
+bins = len(cuts)-1
+colors = sns.diverging_palette(240, 10,n=(bins-1)*2).as_hex()
+colors = [colors[1]]+sns.color_palette("dark:salmon_r",n_colors = bins).as_hex()[:-1]
+sns.set(font_scale = 1.1, style = "ticks")
 fig, ax = plt.subplots(figsize =(2,3))
-colors = sns.diverging_palette(240, 10,n=4).as_hex()
-
-# sns.kdeplot(data= df[(df['vpdTrend']<0)].sigma, ax = ax, color = colors[0], label = "-ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']<df['vpdTrend'].mean())&(df['vpdTrend']>=0)].sigma,  ax = ax, color = colors[1], alpha = 0.5, label = "Below average +ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']>=df['vpdTrend'].mean())].sigma, ax = ax, color = colors[1], label = "Above average +ve VPD trend")
-
-sns.kdeplot(data= df[(df['vpdTrend']<negThresh)], y = "sigma",ax = ax, color = colors[0])
-sns.kdeplot(data= df[(df['vpdTrend']>=negThresh)&(df['vpdTrend']<0)], y = "sigma",  ax = ax, color = colors[1])
-sns.kdeplot(data= df[(df['vpdTrend']<posThresh)&(df['vpdTrend']>=0)], y = "sigma",  ax = ax, color = colors[2])
-sns.kdeplot(data= df[df['vpdTrend']>=posThresh], y = "sigma", ax = ax, color = colors[3])
+n = []
+for i in range(len(cuts)-1):
+    minVal = cuts[i]
+    maxVal = cuts[i+1]
+    data = df.loc[(df.vpdTrend>=minVal)&(df.vpdTrend<maxVal)]
+    n.append(len(data.sigma))
+    sns.kdeplot(data = data,y="sigma",ax = ax, color = colors[i],linewidth = 3)
+    
+ax.annotate("n = 25k",
+            xy = (0.7,0.4), ha = 'left',va = 'top',
+            color = colors[0],weight = "bold",fontsize = 12)
+ax.annotate("n = 89k",
+            xy = (.94,1.15), ha = 'left',va = 'top',
+            color = colors[1],weight = "bold",fontsize = 12)
+ax.annotate("n = 155k",
+            xy = (0.8,1.4), ha = 'left',va = 'top',
+            color = colors[2],weight = "bold",fontsize = 12)
+ax.annotate("n = 10k",
+            xy = (0.35,1.8),ha = 'left',va = 'top',
+            color = colors[3],weight = "bold",fontsize = 12)
 
 ax.set_ylabel("PAS")
 ax.set_xlabel("Density")
@@ -99,24 +111,15 @@ ax.set_xticks([0,0.5,1,1.5])
 # ax.legend(bbox_to_anchor = [0.5,-0.2], loc = "upper center")
 
 # %% VPD sigma box plot
+ndf = pd.DataFrame(columns = range(len(cuts)-1), index = range(df.shape[0]))
+for i in range(len(cuts)-1):
+    minVal = cuts[i]
+    maxVal = cuts[i+1]
+    data = df.loc[(df.vpdTrend>=minVal)&(df.vpdTrend<maxVal)]
+    ndf.loc[0:len(data.sigma)-1,i] = data.sigma.values
+ndf.dropna(inplace = True,how = "all")
+
 fig, ax = plt.subplots(figsize =(1,3))
-colors = sns.diverging_palette(240, 10,n=4).as_hex()
-cmap = LinearSegmentedColormap.from_list(
-        "mycmap", colors, N=4)
-# sns.kdeplot(data= df[(df['vpdTrend']<0)].sigma, ax = ax, color = colors[0], label = "-ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']<df['vpdTrend'].mean())&(df['vpdTrend']>=0)].sigma,  ax = ax, color = colors[1], alpha = 0.5, label = "Below average +ve VPD trend")
-# sns.kdeplot(data= df[(df['vpdTrend']>=df['vpdTrend'].mean())].sigma, ax = ax, color = colors[1], label = "Above average +ve VPD trend")
-
-
-ndf = pd.DataFrame({-3:df[(df['vpdTrend']<negThresh)].sigma,
-                    -1: df[(df['vpdTrend']>=negThresh)&(df['vpdTrend']<0)].sigma,
-                    1:df[(df['vpdTrend']<posThresh)&(df['vpdTrend']>=0)].sigma,
-                    3:df[df['vpdTrend']>=posThresh].sigma})
-# sns.boxplot(data= df[(df['vpdTrend']<negThresh)], y = "sigma", ax = ax, color = colors[0])
-# sns.boxplot(data= df[(df['vpdTrend']>=negThresh)&(df['vpdTrend']<0)], y = "sigma",  ax = ax, color = colors[1])
-# sns.boxplot(data= df[(df['vpdTrend']<posThresh)&(df['vpdTrend']>=0)], y = "sigma",  ax = ax, color = colors[2])
-# sns.boxplot(data= df[df['vpdTrend']>=posThresh], y = "sigma", ax = ax, color = colors[3])
-
 sns.boxplot(data= ndf, ax = ax,palette = colors,saturation = 1,width = 0.8,fliersize = 0)
 
 ax.set_ylabel("")
@@ -135,6 +138,8 @@ gt = ds.GetGeoTransform()
 map_kwargs = dict(llcrnrlon=-119,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
         projection='lcc',lat_1=33,lat_2=45,lon_0=-95)
 # mycmap = sns.diverging_palette(240, 10, as_cmap=True)
+colors = [colors[0]]+[colors[0]]+[colors[0]]+colors + [colors[-1]]
+cmap = ListedColormap(colors)
 scatter_kwargs = dict(cmap = cmap,vmin = -1, vmax = 1)
 fig, ax = plt.subplots(figsize = (3,3))
 fig, ax, m, plot = plotmap(gt = gt, var = vpd,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
@@ -146,7 +151,7 @@ fig, ax, m, plot = plotmap(gt = gt, var = vpd,map_kwargs=map_kwargs ,scatter_kwa
 cax = fig.add_axes([0.68, 0.45, 0.02, 0.3])
 cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
 cax.set_title("VPD trend\n(%/yr)")
-cbar.set_ticks([-1,-0.5,0,0.5,1])
+cbar.set_ticks([-1,0,0.25,0.5,1])
 scatter_kwargs = dict(cmap = "Greys",vmin = 0, vmax = 1,alpha = 0)
 # data = scipy.ndimage.zoom(plantClimate,0.1)
 data = np.nan_to_num(plantClimate,nan = -9999)
@@ -158,3 +163,7 @@ fig2, ax2, m, plot = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_
                       fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = np.nanquantile(data,0.9),
                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 plt.show()
+print(np.nanmean(vpd[plantClimate>=np.nanquantile(plantClimate,0.9)]))
+print(np.mean(vpd))
+print(ndf.mean()[:3].mean())
+print(ndf.mean())

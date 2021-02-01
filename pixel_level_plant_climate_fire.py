@@ -11,6 +11,7 @@ import geopandas as gpd
 from init import dir_root, dir_data
 import fiona
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
 from shapely.geometry import mapping
@@ -21,6 +22,7 @@ import gdal
 import seaborn as sns
 import matplotlib as mpl
 from scipy import stats
+from pylab import cm
 
 
 
@@ -41,6 +43,11 @@ lc_dict = {'forest':[50,70,90,100, 160],
            # 'crops':[14,20,30]
            }
 
+ppt_dict = {'low':[0,250],
+           'medium':[250,750],
+           'high':[750,10000]
+           }
+
 # def get_keys(dictionary, val):
 #     keys = []
 #     for key, value in dictionary:
@@ -56,14 +63,31 @@ filename = os.path.join(dir_root, "data","mean","landcover.tif")
 ds = gdal.Open(filename)
 landcover = np.array(ds.GetRasterBand(1).ReadAsArray())
 
-                    
+
+filename = os.path.join(dir_root, "data","mean","ppt_mean.tif")
+ds = gdal.Open(filename)
+ppt = np.array(ds.GetRasterBand(1).ReadAsArray())*365 #(daily to yearly conversion)
+ppt[landcover==0] = np.nan
+
+sns.set(style = "ticks",font_scale= 1.0)
+fig, ax=  plt.subplots(figsize = (3,3))       
+colors = sns.color_palette("Blues",n_colors = 3).as_hex()
+colors = list(np.repeat(colors[0],2)) + list(np.repeat(colors[1],4)) + list(np.repeat(colors[2],10))
+plot = ax.imshow(ppt, vmin=0,vmax=2000, cmap =ListedColormap(colors))
+plt.axis('off')
+cax = fig.add_axes([1, 0.2, 0.05, 0.6])
+cax.set_title("Annual\nprecipitation (mm)")
+cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
+cbar.set_ticks([0,250,750,2000])
+plt.show()
+
 def histedges_equalN(x, nbin):
     npt = len(x)
     return np.interp(np.linspace(0, npt, nbin + 1),
                      np.arange(npt),
                      np.sort(x))
 
-def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", localize = False, ecoregionalize = False, landcoverize = False):
+def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", localize = False, ecoregionalize = False, landcoverize = False, pptize = False):
     ds = gdal.Open(plantClimatePath)
     plantClimateMap = np.array(ds.GetRasterBand(1).ReadAsArray())
     ##FOR R2 MAP ONLY. Delete Otherwise
@@ -108,6 +132,23 @@ def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", loc
         for region in lc_dict.values():
             # print(region)
             plantClimateQuadrant = landcoverizeUSA(plantClimateMap, area = region)
+            raw = plantClimateQuadrant.flatten()
+            raw = raw[~np.isnan(raw)]
+            # n = int(len(raw)/1e4) # equal area of point for all ecoregions
+            n = 10
+            nEcoregions.append(n)
+            # print(n)
+            bounds = histedges_equalN(raw, n)
+
+            for i in range(n):
+                lower, upper = bounds[i], bounds[i+1]
+                locs = (plantClimateQuadrant>=lower)&(plantClimateQuadrant<upper)
+                plantClimate_seg.append(np.nanmean(plantClimateQuadrant[locs]))
+                areas.append(locs) 
+    elif pptize:
+        for region in ppt_dict.keys():
+            # print(region)
+            plantClimateQuadrant = pptizeUSA(plantClimateMap, area = region)
             raw = plantClimateQuadrant.flatten()
             raw = raw[~np.isnan(raw)]
             # n = int(len(raw)/1e4) # equal area of point for all ecoregions
@@ -302,6 +343,16 @@ def landcoverizeUSA(array, area = None):
     # sub = array[areas_dict[area][0,0]:areas_dict[area][1,0],areas_dict[area][0,1]:areas_dict[area][1,1]]
     return array
 
+def pptizeUSA(array, area = None):
+    array = array.copy()
+    mask = np.ones_like(array, np.bool)
+    
+    mask[np.where((ppt>=ppt_dict[area][0])&(ppt<=ppt_dict[area][1]))] = 0
+    array[mask] = np.nan
+    # sub = array[mask]
+    # sub = array[areas_dict[area][0,0]:areas_dict[area][1,0],areas_dict[area][0,1]:areas_dict[area][1,1]]
+    return array
+
 
 hr = "100hr"
 var = "coefSum"
@@ -309,7 +360,7 @@ lag = 6
 folder = "lfmc_dfmc_anomalies"
 norm = "lfmc_dfmc_norm"
 coefs_type = "positive"
-nLocal = 10
+nLocal = 15
 nGlobal = nLocal*len(ecoregions_dict)
 # for hr in ["1000hr", "100hr"]:
 #     for var in ["coefAbsSum", "coefSum","r2"]:
@@ -319,7 +370,10 @@ nGlobal = nLocal*len(ecoregions_dict)
 plantClimatePath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_%s.tif"%(hr,lag,norm,coefs_type,var))
 # plantClimatePath = os.path.join(dir_root, "data","mean","vpd_mean.tif")
 
-plantClimate_seg,areas, nEcoregions = segregate_plantClimate(plantClimatePath, n = nLocal, binning = "equal_area", localize = False, ecoregionalize = False, landcoverize = False)
+plantClimate_seg,areas, nEcoregions = segregate_plantClimate(plantClimatePath, n = nLocal, \
+                                    binning = "equal_area", localize = False,\
+                                ecoregionalize = False, landcoverize = False,\
+                                    pptize = True)
 r2,coefs, stderrors = segregate_fireClimate(areas)
 
 df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
@@ -333,12 +387,12 @@ sns.regplot(x=plantClimate_seg, y=coefs,ax=ax, ci = 99.5, color = "grey")
 ax.errorbar(plantClimate_seg, coefs, yerr = stderrors, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 1,capsize = 3)
 ax.scatter(plantClimate_seg, coefs, s = 80, color = "k", edgecolor = "grey")
 
-ax.set_xlabel(r"PAS")
-ax.set_ylabel(r"$\frac{dBA}{dVPD}$")
+ax.set_xlabel(r"PWS")
+ax.set_ylabel(r"$\frac{dBA}{dVPD}$ (km$^2$.hPa$^{-1})$")
 ax.set_xlim(0,2)
 slope, intercept, r_value, p_value, std_err = stats.linregress(plantClimate_seg,coefs)
 print(p_value)
-ax.annotate("$R^2$ = %0.2f\nP<0.0001"%(r_value**2),xycoords = "axes fraction",ha = "left", va = "top",xy =(0.1,0.9))
+ax.annotate("R$^2$=%0.2f\n$p$<0.0001"%(r_value**2),xycoords = "axes fraction",ha = "left", va = "top",xy =(0.1,0.9))
 plt.show()
 
 def bootstrap(x, y, yerr, samples = 100):
@@ -365,7 +419,7 @@ for quadrant in lc_dict.keys():
     
     # ax.set_xlabel(r"%s, %s"%(var, hr))
     # ax.set_xlabel(r"$\sum_{i=1}^5\frac{d(LFMC_t)}{d(DFMC_{t-i})}$")
-    axs[ctr].set_xlabel(r"PAS")
+    axs[ctr].set_xlabel(r"PWS")
     axs[ctr].set_ylabel("")
     # ax.set_title(norm)
     axs[ctr].set_xlim(0,2)
@@ -400,7 +454,7 @@ axs[0].set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
 #     axs[ctr].set_xticklabels([ecoregions_dict[quadrant]])
 #     ctr+=1
 # # ax.set_xlabel(r"%s, %s"%(var, hr))
-# axs[0].set_ylabel(r"PAS")
+# axs[0].set_ylabel(r"PWS")
 # ax.set_title(norm)
 # plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
 
@@ -418,7 +472,7 @@ axs[0].set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
 # # ax.errorbar(plantClimate_seg, bas, yerr = stderrors, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
 # ax.scatter(plantClimate_seg, bas, s = 50, color = "k", edgecolor = "grey")
 # ax.set_xlabel(r"%s, %s"%(var, hr))
-# ax.set_xlabel(r"PAS")
+# ax.set_xlabel(r"PWS")
 # ax.set_xlim(0,2)
 # # ax.set_xlabel(r"Mean VPD")
 # ax.set_ylabel(r"BA (km$^2$)")
@@ -556,13 +610,49 @@ ax.set_yticklabels(["shrubs","grass"])
 # fig, ax = plt.subplots(figsize = (3,3))
 # for quadrant in lc_dict.keys():
 
-#     ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
-#     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
+#     ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+#                 df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+#                     yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+#                         color = "lightgrey", zorder = -1, linewidth = 0, \
+#                             elinewidth = 2)
+#     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+#                df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, \
+#                    edgecolor = "grey",label = quadrant, color = colors[ctr])
 #     ctr+=1
-# ax.set_xlabel(r"Plant climate sensitivity")
+# ax.set_xlabel(r"PWS")
 # ax.set_ylabel(r"$\frac{dNDVI_{t}}{dPPT_{t-1}}$")
 
 # plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
+
+# plt.show()
+
+#%% dNDVI/dPPT vs. PWS on precip gradients 
+
+r2,coefs, stderrors = segregate_ndviPpt(areas)
+
+df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
+colors =sns.color_palette("Blues", n_colors = 3).as_hex()
+ctr=0
+fig, ax = plt.subplots(figsize = (3,3))
+for quadrant in ppt_dict.keys():
+
+    ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+                df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+                    yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+                        color = "lightgrey", zorder = -1, linewidth = 0, \
+                            elinewidth = 2)
+    ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
+               df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, \
+                   edgecolor = "grey",label = quadrant, color = colors[ctr])
+    ctr+=1
+ax.set_xlabel(r"PWS")
+ax.set_xlim(0,2)
+ax.set_ylabel(r"$\frac{dNDVI_{t}}{dPPT_{t-1}}$")
+
+plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
+
+plt.show()
+
 
 #%% ndvi ba
 
@@ -591,7 +681,7 @@ ax.set_yticklabels(["shrubs","grass"])
 #     ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
 #     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = ecoregions_dict[quadrant])
 #     ctr+=1
-# ax.set_xlabel(r"Plant climate sensitivity")
+# ax.set_xlabel(r"PWS")
 # ax.set_ylabel(r"$\frac{dBA}{dNDVI}$")
 
 # plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
