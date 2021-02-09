@@ -21,6 +21,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap
 from matplotlib.colors import LinearSegmentedColormap
 from scipy.ndimage.filters import gaussian_filter
+import matplotlib.patches as patches
+
 
 
 
@@ -47,32 +49,28 @@ plantClimate = np.array(ds.GetRasterBand(1).ReadAsArray())
 
 df = pd.DataFrame({"vpdTrend":vpd.flatten(), "sigma": plantClimate.flatten()}).dropna()
 
-res = 100
-fig, ax  = plt.subplots(figsize  = (3,3))
-ax.hist2d(x = df.sigma, y = df.vpdTrend, bins=(res, res), vmax = 2e2, vmin = 0, cmap='mako')
-ax.set_xlabel("PAS")
-ax.set_ylabel("VPD Trend (hPa/yr)")
-ax.set_xlim(0,2)
-ax.set_ylim(-0.05,0.2)
-ax.axvline(x = df.sigma.mean(), color = "lightgrey", linestyle = "--", linewidth = 2)
-ax.axhline(y = df.vpdTrend.mean(), color = "lightgrey", linestyle = "--", linewidth = 2)
+# res = 100
+# fig, ax  = plt.subplots(figsize  = (3,3))
+# ax.hist2d(x = df.sigma, y = df.vpdTrend, bins=(res, res), vmax = 2e2, vmin = 0, cmap='mako')
+# ax.set_xlabel("PAS")
+# ax.set_ylabel("VPD Trend (hPa/yr)")
+# ax.set_xlim(0,2)
+# ax.set_ylim(-0.05,0.2)
+# ax.axvline(x = df.sigma.mean(), color = "lightgrey", linestyle = "--", linewidth = 2)
+# ax.axhline(y = df.vpdTrend.mean(), color = "lightgrey", linestyle = "--", linewidth = 2)
 
 
-ax.annotate("%d %%"%(df[(df['vpdTrend']>=df['vpdTrend'].mean())&(df['sigma']>=df['sigma'].mean())].shape[0]/df.shape[0]*100),
-            xy = (1,1), xycoords = "axes fraction",ha = 'right',va = 'top',color = "lightgrey")
-ax.annotate("%d %%"%(df[(df['vpdTrend']<=df['vpdTrend'].mean())&(df['sigma']<=df['sigma'].mean())].shape[0]/df.shape[0]*100),
-            xy = (0.1,0), xycoords = "axes fraction",ha = 'left',va = 'bottom',color = "lightgrey")
+# ax.annotate("%d %%"%(df[(df['vpdTrend']>=df['vpdTrend'].mean())&(df['sigma']>=df['sigma'].mean())].shape[0]/df.shape[0]*100),
+#             xy = (1,1), xycoords = "axes fraction",ha = 'right',va = 'top',color = "lightgrey")
+# ax.annotate("%d %%"%(df[(df['vpdTrend']<=df['vpdTrend'].mean())&(df['sigma']<=df['sigma'].mean())].shape[0]/df.shape[0]*100),
+#             xy = (0.1,0), xycoords = "axes fraction",ha = 'left',va = 'bottom',color = "lightgrey")
 
-ax.annotate("%d %%"%(df[(df['vpdTrend']<=df['vpdTrend'].mean())&(df['sigma']>=df['sigma'].mean())].shape[0]/df.shape[0]*100),
-            xy = (1,0), xycoords = "axes fraction",ha = 'right',va = 'bottom',color = "lightgrey")
+# ax.annotate("%d %%"%(df[(df['vpdTrend']<=df['vpdTrend'].mean())&(df['sigma']>=df['sigma'].mean())].shape[0]/df.shape[0]*100),
+#             xy = (1,0), xycoords = "axes fraction",ha = 'right',va = 'bottom',color = "lightgrey")
 
-ax.annotate("%d %%"%(df[(df['vpdTrend']>=df['vpdTrend'].mean())&(df['sigma']<=df['sigma'].mean())].shape[0]/df.shape[0]*100),
-            xy = (.1,1), xycoords = "axes fraction",ha = 'left',va = 'top',color = "lightgrey")
+# ax.annotate("%d %%"%(df[(df['vpdTrend']>=df['vpdTrend'].mean())&(df['sigma']<=df['sigma'].mean())].shape[0]/df.shape[0]*100),
+#             xy = (.1,1), xycoords = "axes fraction",ha = 'left',va = 'top',color = "lightgrey")
 
-
-# sns.kdeplot(data = df,
-#     fill=True,cmap="mako",
-# )
 
 # geyser = sns.load_dataset("geyser")
 # sns.kdeplot(data=geyser, x="waiting", y="duration")
@@ -146,7 +144,9 @@ scatter_kwargs = dict(cmap = cmap,vmin = -0.1, vmax = 0.2)
 fig, ax = plt.subplots(figsize = (3,3))
 fig, ax, m, plot = plotmap(gt = gt, var = vpd,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
                       fill = "white",background="white",fig = fig,ax=ax,
-                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\states",shapefilename ='states')
+                      shapefilepath = 'D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
+                  shapefilename ='states')
+ax.axis('off')
 
 # cax = fig.add_axes([0.68, 0.45, 0.02, 0.3])
 # cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
@@ -160,11 +160,108 @@ data = gaussian_filter(data, sigma = 3,order = 0)
 data[data<0] = np.nan
 # plt.imshow(data,cmap = "viridis")
 
-fig2, ax2, m, plot = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
-                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = np.nanquantile(data,0.9),contourColor = "lightgrey",
-                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+# fig2, ax2, m, plot = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
+#                       fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = np.nanquantile(data,0.9),contourColor = "lightgrey",
+#                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 plt.show()
 print(np.nanmean(vpd[plantClimate>=np.nanquantile(plantClimate,0.9)]))
 print(np.nanmean(vpd))
 print(ndf.mean()[:3].mean())
 print(ndf.mean())
+
+#%% 2d density plots
+sns.set(font_scale = 1.1, style = "ticks")
+
+fig = plt.figure(constrained_layout=True, figsize = (3.3,3))
+ns = 6
+gs = fig.add_gridspec(6, 6, wspace=0.01, hspace=0.01)
+ax = fig.add_subplot(gs[1:, :ns-1])
+axh = fig.add_subplot(gs[0, :ns-1])
+axv = fig.add_subplot(gs[1:, -1])
+axh.set_xticks([])
+axv.set_yticks([])
+
+sns.kdeplot(data = df.sample(int(1e4), random_state =1), x = "sigma",y = "vpdTrend",\
+    fill=True,cmap="mako_r",levels = 10, ax = ax)
+lw = 2
+risk = np.where((vpd<0)&(plantClimate<1), plantClimate, np.nan).flatten()
+sns.kdeplot(data =risk,linewidth = lw,\
+    fill=True, ax = axh,color = "#FEC5E5" )
+
+risk = np.where((vpd>=0)&(vpd<0.05)&(plantClimate>=1)&(plantClimate<1.5), plantClimate, np.nan).flatten()
+sns.kdeplot(data = risk.flatten(),linewidth = lw,\
+    fill=True, ax = axh,color = "#FA86C4" )
+risk = np.where((vpd>=0.05)&(plantClimate>=1.5), plantClimate, np.nan).flatten()
+sns.kdeplot(data = risk,linewidth = lw,\
+    fill=True, ax = axh,color = "#FF1694" )
+
+    
+risk = np.where((vpd<0)&(plantClimate<1), vpd, np.nan).flatten()
+sns.kdeplot(data =risk,y = risk, linewidth = lw,\
+    fill=True, ax = axv,color = "#FEC5E5" )
+
+risk = np.where((vpd>=0)&(vpd<0.05)&(plantClimate>=1)&(plantClimate<1.5), vpd, np.nan).flatten()
+sns.kdeplot(data = risk, y=risk,linewidth = lw,\
+    fill=True, ax = axv,color = "#FA86C4" )
+risk = np.where((vpd>=0.05)&(plantClimate>=1.5), vpd, np.nan).flatten()
+sns.kdeplot(data = risk,y = risk, linewidth = lw,\
+    fill=True, ax = axv,color = "#FF1694" )
+    
+# ax.axhline(y = 0, color = "darkgrey", linestyle = "-", linewidth = 0.5)
+rect = patches.Rectangle((0,-0.05),1,0.05,linewidth=3,edgecolor='#FEC5E5',facecolor='none', clip_on = False, zorder = 99)
+ax.add_patch(rect)
+rect = patches.Rectangle((1,0),0.5,0.05,linewidth=3,edgecolor='#FA86C4',facecolor='none', clip_on = False, zorder = 100)
+ax.add_patch(rect)
+rect = patches.Rectangle((1.5,0.05),0.49,0.05,linewidth=3,edgecolor='#FF1694',facecolor='none', clip_on = False, zorder = 101)
+
+ax.add_patch(rect)
+ax.set_ylabel("VPD Trend (hPa/yr)")
+ax.set_xlabel("PWS")
+axv.set_xlabel("")
+axh.set_ylabel("")
+ax.set_xlim(0,2)
+axh.set_yticks([])
+axv.set_xticks([])
+axh.set_xlim(0,2)
+axv.set_ylim(-0.05,0.15)
+
+ax.set_ylim(-0.05,0.15)
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+
+
+axv.spines['right'].set_visible(False)
+axv.spines['top'].set_visible(False)
+axv.spines['bottom'].set_visible(False)
+
+axh.spines['right'].set_visible(False)
+axh.spines['top'].set_visible(False)
+axh.spines['left'].set_visible(False)
+# plt.tight_layout()
+
+#%%high risk contour plot 
+
+fig, ax = plt.subplots(figsize = (3,3))
+risk = np.where((vpd<0)&(plantClimate<1), 1, np.nan)
+scatter_kwargs=dict(cmap = ListedColormap(["#FEC5E5"]))
+marker_factor = 0.2
+fig, ax, m, plot = plotmap(gt = gt, var = risk,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = marker_factor, 
+                      fill = "white",background="white",fig=fig, ax=ax,
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+scatter_kwargs=dict(cmap = ListedColormap(["#FA86C4"]))
+risk = np.where((vpd>=0)&(vpd<0.05)&(plantClimate>=1)&(plantClimate<1.5), 1, np.nan)
+fig, ax, m, plot = plotmap(gt = gt, var = risk,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = marker_factor, 
+                      fill = "white",background="white",fig=fig, ax=ax,
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+scatter_kwargs=dict(cmap = ListedColormap(["#FF1694"]))
+risk = np.where((vpd>=0.05)&(plantClimate>=1.5), 1, np.nan)
+fig, ax, m, plot = plotmap(gt = gt, var = risk,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = marker_factor, 
+                      fill = "white",background="white",fig=fig, ax=ax,
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+ax.axis('off')
+
+
+

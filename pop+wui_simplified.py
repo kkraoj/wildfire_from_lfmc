@@ -21,6 +21,8 @@ from scipy.stats import gaussian_kde
 from matplotlib.colors import ListedColormap
 import matplotlib as mpl
 import matplotlib.ticker as mtick
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
 
 
 
@@ -73,7 +75,7 @@ for (wuiName, popName) in zip(wuiNames, popNames):
 #%% growth rates for 10 bins
 
 
-nbins = 15
+nbins = 10
 cmap = plt.get_cmap('viridis',nbins)    # PiYG
 colors = [mpl.colors.rgb2hex(cmap(i))  for i in range(cmap.N)]
   
@@ -97,8 +99,8 @@ for (wuiName, popName) in zip(wuiNames, popNames):
     pop[pop<0] = 0
     # pop = subset_CA(pop)
     # wui = subset_CA(wui)
-    pop = pop[wui==2]
-    pc = plantClimate[wui==2]
+    pop = pop[wui==1]
+    pc = plantClimate[wui==1]
     df = pd.DataFrame({"pc":pc,"pop":pop})
     df.dropna(inplace = True)
     df['pcBin'] = pd.qcut(df.pc, nbins, labels = vulLabels[:-1])
@@ -148,7 +150,7 @@ for q in vulLabels[:-1]:
     ax.fill_between(xsq, 0, densityq, color = colors[ctr])
     ctr+=1
     
-ax.set_xlabel("Plant climate sensitivity")
+ax.set_xlabel("PWS")
 ax.set_ylabel("Density")
 
 ax.spines['right'].set_color('none')
@@ -157,13 +159,49 @@ ax.spines['top'].set_color('none')
 fig, ax = plt.subplots(figsize = (3,3))
 
 ax.bar(ts.columns,ts.diff().dropna().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels))
-ax.set_xlabel("Plant climate sensitvity")
-ax.set_ylabel("$\Delta$ WUI population")
+ax.set_xlabel("PWS")
+ax.set_ylabel("WUI population rise")
 
-ylabels = ['{:,.1f}'.format(x) + 'M' for x in ax.get_yticks()/1e6]
+ylabels = ['{:,.1f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
 ax.set_yticklabels(ylabels)
 ax.set_xlim(0,2.1)
 # Only show ticks on the left and bottom spines
 # Hide the right and top spines
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
+
+width = 10
+
+xticks = np.linspace(0,100-width,nbins)
+fig, ax = plt.subplots(figsize = (3,3))
+ax.bar(xticks,ts.diff().dropna().values.tolist()[0],align = "edge",\
+       color = colors,width = width,edgecolor = "k",linewidth = 1.5)
+    
+
+ax.hlines(y = np.mean(ts.diff().dropna().values.tolist()[0][:int(nbins/2)]), \
+           xmin = xticks[0], xmax = xticks[int(nbins/2)],linestyle = "--", \
+               color = "k")
+    
+ax.fill_between(x = xticks[:int(nbins/2)+1],\
+    y1 = np.mean(ts.diff().dropna().values.tolist()[0][:int(nbins/2)]) - \
+        np.std(ts.diff().dropna().values.tolist()[0][:int(nbins/2)]), \
+    y2 = np.mean(ts.diff().dropna().values.tolist()[0][:int(nbins/2)]) + \
+        np.std(ts.diff().dropna().values.tolist()[0][:int(nbins/2)]), \
+    color = "k",alpha = 0.2)
+ax.fill_between(x = np.linspace(50,100,6),\
+    y1 = np.mean(ts.diff().dropna().values.tolist()[0][int(nbins/2):]) - \
+        np.std(ts.diff().dropna().values.tolist()[0][int(nbins/2):]), \
+    y2 = np.mean(ts.diff().dropna().values.tolist()[0][int(nbins/2):]) + \
+        np.std(ts.diff().dropna().values.tolist()[0][int(nbins/2):]), \
+    color = "k",alpha = 0.2)
+ax.hlines(y = np.mean(ts.diff().dropna().values.tolist()[0][int(nbins/2):]), \
+           xmin =xticks[int(nbins/2)], xmax = xticks[-1]+width,linestyle = "--", \
+               color = "k")
+    
+ax.set_xlabel("PWS percentile")
+ax.set_ylabel("WUI population rise")
+ylabels = ['{:,.1f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
+ax.xaxis.set_major_locator(MultipleLocator(2*width))
+ax.set_yticklabels(ylabels)
+# ax.set_xticks(np.linspace(0,1.1, nbins+1))
+ax.xaxis.set_minor_locator(MultipleLocator(width))

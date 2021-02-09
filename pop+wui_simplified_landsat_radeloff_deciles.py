@@ -518,7 +518,7 @@ ax.xaxis.set_minor_locator(MultipleLocator(width))
 fig, ax = plt.subplots(figsize = (2.2,2))
 plot = ts.plot(ax = ax, legend = False, \
                cmap = ListedColormap(colors), linewidth = 2)
-plot = ax.scatter(x = np.repeat(2002,10),y = np.repeat(5e6,10), \
+plot = ax.scatter(x = np.repeat(2002,10),y = np.repeat(3e6,10), \
                   c = np.linspace(0,90,10),\
                   s = 0,cmap = ListedColormap(colors) )
 # ax.plot(ts.iloc[:,0],colors[0], linewidth = 3)
@@ -537,7 +537,7 @@ cax.yaxis.set_ticklabels(np.linspace(0,100,6).astype(int))
 # cbar.ax.tick_params(labelsize=8) 
 
 ax.set_xticks([1990,2010])
-ax.set_xticklabels([2001,2016])
+# ax.set_xticklabels([2001,2016])
 ax.set_ylabel("WUI population")
 ylabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
 ax.set_yticklabels(ylabels)
@@ -562,9 +562,9 @@ ax.plot(ts.iloc[:,0],colors[0], linewidth = 3)
 ax.plot(ts.iloc[:,-1],colors[-1], linewidth = 3)
 ax.set_xticks([1990,2010])
 
-ax.set_xticklabels([2001,2016])
-ax.set_ylim(6e6,12e6)
-ax.set_yticks([8e6, 10e6, 12e6])
+# ax.set_xticklabels([1990,2016])
+# ax.set_ylim(6e6,12e6)
+# ax.set_yticks([8e6, 10e6, 12e6])
 ax.set_ylabel("WUI population")
 ylabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
 ax.set_yticklabels(ylabels)
@@ -657,14 +657,14 @@ ax.set_xticks(np.linspace(0,100,6))
 fig, ax = plt.subplots(figsize =(3,3))
 
 ax.bar(xticks,height = ts.iloc[0], align = "edge",\
-       color = "dodgerblue",width = width,edgecolor = "k",linewidth = 1.5, label = "2001")
+       color = "dodgerblue",width = width,edgecolor = "k",linewidth = 1.5, label = "1990")
 ax.bar(xticks,height =ts.diff().dropna().values[0], bottom = ts.iloc[0], align = "edge",\
-       color = "darkorange",width = width,edgecolor = "k",linewidth = 1.5, label = "2016")
+       color = "darkorange",width = width,edgecolor = "k",linewidth = 1.5, label = "2010")
 
 ax.legend(frameon = False, bbox_to_anchor = (1.05,1.05), loc = "upper right")    
 ax.set_xlabel("PWS percentile")
 ax.set_ylabel("WUI population")
-ax.set_ylim(0,14e6)
+ax.set_ylim(0,2e6)
 ylabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
 ax.set_yticklabels(ylabels)
 
@@ -678,4 +678,4 @@ ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = col
 
 xlabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_xticks()/1e6]
 ax.set_xticklabels(xlabels)
-ax.set_yticklabels([2016,2001])
+ax.set_yticklabels([2010,1990])
