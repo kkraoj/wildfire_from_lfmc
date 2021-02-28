@@ -23,7 +23,9 @@ import seaborn as sns
 import matplotlib as mpl
 from scipy import stats
 from pylab import cm
-
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
+from plotmap import plotmap
 
 
 sns.set(style = "ticks")
@@ -102,7 +104,7 @@ def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", loc
         raw = plantClimateMap.flatten()
         raw = raw[~np.isnan(raw)]
         bounds = histedges_equalN(raw, n)
-    
+        # print(bounds)
     if localize:
         for quadrant in areas_dict.keys():
             plantClimateQuadrant = localizeUSA(plantClimateMap, area = quadrant)
@@ -186,6 +188,10 @@ def as_si(x, ndp):
     
 def segregate_fireClimate(areas):
     r2 ,coefs, stderrors =[],[], []
+    ctr = 0
+    colors = ["#1565c0","#f2d600"]
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (3.6,1.6), sharey = True)
+
     for area in areas:
         ba, vpd = [],[]
         for i in range(19):
@@ -209,20 +215,65 @@ def segregate_fireClimate(areas):
             r2.append(r_value**2)
             coefs.append(slope)
             stderrors.append(std_err)
-            sns.set(style="ticks", font_scale=1.1)
-
-            fig, ax = plt.subplots(figsize = (3,3))
-            # ax.scatter(vpd, ba)
-            ax.set_xlabel("VPD (hPa)")
-            ax.set_ylabel("BA (km$^2$)")
-            sns.regplot(vpd, ba, color = "darkgreen",scatter_kws ={'s':80})
-            ax.set_ylim(0,3000)
-            # ax.set_xlim(23,28)
-            # print(r_value)
-            ax.annotate(r"$\frac{d(BA)}{d(VPD)}$ = %d (km$^2$/hPa)"%(100*round(slope/100)), (0.05,0.95),xycoords = "axes fraction",ha = "left", va = "top")
-            plt.show()
+            sns.set(style="ticks", font_scale=1.)
             
+            # fig_, ax_ =plt.subplots(figsize = (2,2))
+            
+            # ax_.set_ylabel("Burned area (km$^2$)")
+            # ax_.set_xlim(21, 27) ## should be before plotting
+            # sns.regplot(vpd, ba, color = "k", truncate = False,\
+            #             scatter_kws ={'s':30,"edgecolor":"grey"},\
+            #         line_kws = {"color":"k"}, ax =ax_)
+            # ax_.set_ylim(0,4000)
+            # ax_.set_xticks([21, 24, 27])
+            # ax_.set_xlabel("VPD (hPa)")
+                
+            if ctr==0:
+                # ax1.set_xlabel("VPD (hPa)")
+                
+                ax1.set_ylabel("Burned area (km$^2$)")
+                ax1.set_xlim(21, 27) ## should be before plotting
+                sns.regplot(vpd, ba, color = colors[0], truncate = False,\
+                            scatter_kws ={'s':30,"edgecolor":"grey"},\
+                        line_kws = {"color":"k"}, ax =ax1)
+                ax1.set_ylim(0,4000)
+                ax1.set_xticks([21, 24, 27])
+                # ax1.annotate(r"$\rm \frac{d(BA)}{d(VPD)}\approx$350 km$^2$hPa$^{-1}$"%slope,\
+                #     (0.98,0.0),xycoords = "axes fraction",ha = "right", \
+                #         fontsize = 6, va = "bottom")
+                ax1.annotate(
+                    r"$\rm \frac{d(BA)}{d(VPD)}\approx$350 km$^2$hPa$^{-1}$"%slope,\
+                    (0.02,1.01),xycoords = "axes fraction",ha = "left", \
+                        fontsize = 8, va = "top")
+                ax1.annotate(
+                    r"PWS$\in$[0, 0.3]"%slope,\
+                    (0.5,1.05),xycoords = "axes fraction",ha = "center", \
+                        fontsize = 9 )
+                
+            elif ctr==14:
+                # ax2.set_xlabel("VPD (hPa)")
+                ax2.set_ylabel("")
+                ax2.set_xlim(21, 27) ## should be before plotting
+                sns.regplot(vpd, ba, color = colors[1], truncate = False,\
+                            scatter_kws ={'s':30,"edgecolor":"grey"},\
+                        line_kws = {"color":"k"}, ax =ax2)
+                # ax.set_ylim(0,3000)
+                ax2.set_xticks([21, 24, 27])
+                ax2.annotate(r"$\rm \frac{d(BA)}{d(VPD)}\approx$700 km$^2$hPa$^{-1}$"%slope,\
+                    (0.02,1.01),xycoords = "axes fraction",ha = "left", \
+                        fontsize = 8, va = "top")
+                ax2.annotate(r"PWS$\in$[1.7, 2]"%slope,\
+                    (0.5,1.05),xycoords = "axes fraction",ha = "center", \
+                        fontsize = 9)
+                
+        ctr+=1
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    fig.text(x = 0.5 ,y = -0.07, s = r'Vapor pressure deficit (VPD) (hPa)', ha ="center",va="top")
 
+    plt.show()
     return np.array(r2),np.array(coefs), np.array(stderrors)
 
 def segregate_ndviPpt(areas):
@@ -377,29 +428,78 @@ plantClimate_seg,areas, nEcoregions = segregate_plantClimate(plantClimatePath, n
 r2,coefs, stderrors = segregate_fireClimate(areas)
 
 df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
+# np.save(os.path.join(dir_root, "data","pws_bins","PWS_bin_1.npy"), areas[0])
+# np.save(os.path.join(dir_root, "data","pws_bins","PWS_bin_15.npy"), areas[-1])
 
+# %% main plot
+sns.set(style="ticks", font_scale=1.)
+slope, intercept, r_value, p_value, std_err = stats.linregress(plantClimate_seg,coefs)
+print(p_value)
 
-#%% main plot
-sns.set(style="ticks", font_scale=1.3)
 fig, ax = plt.subplots(figsize = (4,4))
-sns.regplot(x=plantClimate_seg, y=coefs,ax=ax, ci = 99.5, color = "grey")
+ax.set_xlim(0,2)
+# ax.set_ylim(200,900)
+sns.regplot(x=plantClimate_seg, y=coefs,ax=ax, ci = 99.5, color = "grey", seed = 0)
 
 ax.errorbar(plantClimate_seg, coefs, yerr = stderrors, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 1,capsize = 3)
 ax.scatter(plantClimate_seg, coefs, s = 80, color = "k", edgecolor = "grey")
+ax.scatter(plantClimate_seg[0], coefs[0], s = 80, color = "#1565c0", edgecolor = "grey")
+ax.scatter(plantClimate_seg[-1], coefs[-1], s = 80, color = "#f2d600", edgecolor = "grey")
 
-ax.set_xlabel(r"PWS")
-ax.set_ylabel(r"$\frac{dBA}{dVPD}$ (km$^2$.hPa$^{-1})$")
-ax.set_xlim(0,2)
-slope, intercept, r_value, p_value, std_err = stats.linregress(plantClimate_seg,coefs)
-print(p_value)
+    
+ax.set_xlabel(r"Plant-water sensitivity (PWS)")
+ax.set_ylabel(r"$\rm  \frac{d(Burned\ area)}{d(VPD)}$                ", fontsize = 16)
+fig.text(x = -0.05 ,y = 0.56, s = r'(km$^2$hPa$^{-1}$)',rotation = 90)
+ax.set_ylim(100,900)
+# ax.yaxis.set_major_locator(MultipleLocator(200))
+ax.set_yticks(np.linspace(100,900,5))
 ax.annotate("R$^2$=%0.2f\n$p$<0.0001"%(r_value**2),xycoords = "axes fraction",ha = "left", va = "top",xy =(0.1,0.9))
 plt.show()
+
 
 def bootstrap(x, y, yerr, samples = 100):
     yboot = np.random.normal(loc = np.array(y), scale = yerr, size = (samples, len(y))).flatten(order = "F")
     xboot = np.repeat(x, samples)
     
     return np.array(xboot), yboot
+
+#%% map of areas
+
+gt = ds.GetGeoTransform()
+# map_kwargs = dict(llcrnrlon=-119,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
+#         projection='lcc',lat_1=33,lat_2=45,lon_0=-95)
+
+map_kwargs = dict(llcrnrlon=-128,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
+        projection='cyl')
+
+cmap = ListedColormap(["#1565c0"])
+scatter_kwargs = dict(cmap = cmap,vmin = -0.1, vmax = 0.2)
+
+fig, ax = plt.subplots(figsize = (3,3), frameon = False)
+fig, ax, m, plot = plotmap(gt = gt, var = np.where(areas[0]==1, 1, np.nan),\
+                    map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, \
+                marker_factor = .1, 
+                      fill = "white",background="white",fig = fig,ax=ax,
+                      shapefilepath = 'D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
+                  shapefilename ='states')
+scatter_kwargs=dict(cmap = ListedColormap(["#f2d600"]))
+fig, ax, m, plot = plotmap(gt = gt, var = np.where(areas[-1]==1, 1, np.nan),\
+            map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, \
+                marker_factor = .1, 
+                      fill = "white",background="white",fig = fig,ax=ax,
+                      shapefilepath = 'D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
+                  shapefilename ='states')
+ax.axis('off')
+
+
+fig, ax = plt.subplots(figsize = (3,3), frameon = False)
+cmap = ListedColormap(["#1565c0"])
+ax.imshow(np.where(areas[0]==1, 1, np.nan), cmap = cmap)
+cmap = ListedColormap(["#f2d600"])
+ax.imshow(np.where(areas[-15]==1, 1, np.nan), cmap = cmap)
+# ax.axis('off')
+
+
 #%% segregated plot
 ctr=0
 colors = ["seagreen","darkgoldenrod","limegreen"]

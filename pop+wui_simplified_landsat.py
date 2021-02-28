@@ -153,7 +153,7 @@ scatter_kwargs = dict(cmap = "Oranges",vmin = 0, vmax = 1,alpha = 0.05)
 #%% growth rates for 10 bins
 
 
-nbins = 10
+nbins = 15
 cmap = plt.get_cmap('viridis',nbins)    # PiYG
 colors = [mpl.colors.rgb2hex(cmap(i))  for i in range(cmap.N)]
   
@@ -203,7 +203,7 @@ xs = np.linspace(df.pc.min(),df.pc.max(),100)
 density.covariance_factor = lambda : .25
 density._compute_covariance()
 
-fig, ax = plt.subplots(figsize = (1,1))
+fig, ax = plt.subplots(figsize = (2,2))
 ax.plot(xs,density(xs), linewidth = 3, color = "grey")
 # for q in [0.0,0.25,0.5,0.75]:
 low = xs.min()
@@ -218,6 +218,7 @@ for q in vulLabels[1:]:
     
 # ax.set_xlabel("Plant climate sensitivity")
 ax.set_ylabel("Density")
+ax.set_xlabel("PWS")
 ax.set_xticks([0,1,2])
 ax.set_yticks([0,0.5,1])
 

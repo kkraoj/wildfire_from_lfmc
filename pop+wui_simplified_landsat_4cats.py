@@ -9,7 +9,7 @@ Created on Sun Nov 29 12:31:21 2020
 
 
 import os
-from init import dir_root, dir_data, dir_fig
+from init import dir_root, dir_data
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -30,13 +30,12 @@ import squarify
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
                                AutoMinorLocator)
 
-SAVEPLOT = False
 
 def subset_CA(wui):
     wuiCA = wui[200:450,:300]
     return wuiCA
     
-sns.set(font_scale = 1.0, style = "ticks")
+sns.set(font_scale = 1.1, style = "ticks")
 # wuiNames = ["wui1990.tif","wui2000.tif","wui2010.tif"]
 # popNames = ["pop1990.tif","pop2000.tif","pop2010.tif"]
 
@@ -103,8 +102,8 @@ gt = ds.GetGeoTransform()
 #%% growth rates for 10 bins
 
 
-nbins = [0,1.0, 1.5, 4]
-colors = ["#f1d4d4","#e6739f","#cc0e74"]
+nbins = [0,0.64,0.92,1.2,4]
+colors = ["#f1d4d4","#e6739f","#cc0e74","#790c5a"]
 # colors = ["#FEC5E5","#FF1694"]
 cmap = ListedColormap(colors)
     # rgb2hex accepts rgb or rgba
@@ -149,7 +148,7 @@ for (wuiName, popName) in zip(wuiNames, popNames):
 ts = ts.sort_index()
 #%% bar chart with quantiles with big bars
 width = 1
-nbins = 3
+nbins = 4
 xticks = np.linspace(0,nbins-1, nbins)
 fig, ax = plt.subplots(figsize = (3,3))
 ax.bar(xticks,ts.diff().dropna().values.tolist()[0],align = "center",\
@@ -161,18 +160,13 @@ ylabels = ['{:,.1f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
 ax.xaxis.set_major_locator(MultipleLocator(2*width))
 ax.set_yticklabels(ylabels)
 ax.set_xticks(xticks)
-ax.set_xticklabels(["Low","Medium","High"])
+ax.set_xticklabels(["Low","Medium","High","Extreme"])
 # ax.set_xticks(np.linspace(0,1.1, nbins+1))
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI","wui pop rise bar plot absolute.eps"), format = "eps")
-
-
 #%% bar chart with quantiles y axis normalized by total WUI expansion
-fig, ax = plt.subplots(figsize = (3.2,3))
+fig, ax = plt.subplots(figsize = (3,3))
 y = ts.diff().dropna()
 y = (y/y.sum(axis = 1).values[0]*100).values.tolist()[0]
 
@@ -180,18 +174,13 @@ ax.bar(xticks,y,align = "center",\
        color = colors,width = width,edgecolor = "k",linewidth = 1.5)
     
 ax.set_xticks(xticks)
-ax.set_xticklabels(["Low","Medium","High"])
+ax.set_xticklabels(["Low","Medium","High","Extreme"])
 ax.set_xlabel("Risk")
 
 ax.set_ylabel("% WUI population rise\n(wrt to total WUI pop. rise)")
 
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative.eps"), format = "eps")
-
-
 #%% bar chart with quantiles y axis normalized by 1990 population
-fig, ax = plt.subplots(figsize = (3.2,3))
+fig, ax = plt.subplots(figsize = (3,3))
 y = ts.diff().dropna()
 y = (y/ts.iloc[0]*100).values[0]
 
@@ -199,22 +188,17 @@ ax.bar(xticks,y,align = "center",\
        color = colors,width = width,edgecolor = "k",linewidth = 1.5)
     
 ax.set_xticks(xticks)
-ax.set_xticklabels(["Low","Medium","High"])
+ax.set_xticklabels(["Low","Medium","High","Extreme"])
 ax.set_xlabel("Risk")
 
 ax.set_ylabel("% WUI population rise\n(wrt to 1990 population)")
-
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative wrt 1990.eps"), format = "eps")
-
 
 #%% time series of WUI pop growth
 
 # reds = sns.color_palette("dark:salmon",n_colors = nbins).as_hex()
 fig, ax = plt.subplots(figsize = (2.2,2))
 plot = ts.plot(ax = ax, legend = False, \
-               cmap = ListedColormap(colors), linewidth = 4)
+               cmap = ListedColormap(colors), linewidth = 3)
 plot = ax.scatter(x = np.repeat(2002,nbins),y = np.repeat(5e6,nbins), \
                   c = np.linspace(0,max(xticks),nbins),\
                   s = 0,cmap = ListedColormap(colors) )
@@ -224,10 +208,10 @@ cax.set_title("Risk",ha = "center")
 cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
 
 cax.yaxis.set_ticks(xticks)
-cax.yaxis.set_ticklabels(["Low","Medium","High"])
+cax.yaxis.set_ticklabels(["Low","Medium","High","Extreme"])
 # cbar.ax.tick_params(labelsize=8) 
 
-# ax.set_xticks([1990,2010])
+ax.set_xticks([1990,2010])
 # ax.set_xticklabels([2001,2016])
 ax.set_ylabel("WUI population")
 ylabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
@@ -241,46 +225,11 @@ ax.yaxis.set_ticks_position('left')
 ax.xaxis.set_ticks_position('bottom')
 
 
-
-#%% time series of normalized WUI pop growth
-
-# reds = sns.color_palette("dark:salmon",n_colors = nbins).as_hex()
-fig, ax = plt.subplots(figsize = (3.2,2))
-plot = (ts.divide(ts.iloc[0])*100).plot(ax = ax, legend = False, \
-               cmap = ListedColormap(colors), linewidth = 4)
-plot = ax.scatter(x = np.repeat(2002,nbins),y = np.repeat(150,nbins), \
-                  c = np.linspace(0,max(xticks),nbins),\
-                  s = 0,cmap = ListedColormap(colors) )
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='10%', pad=0.2)
-cax.set_title("Risk",ha = "center")
-cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
-
-cax.yaxis.set_ticks(xticks)
-cax.yaxis.set_ticklabels(["Low","Medium","High"])
-# cbar.ax.tick_params(labelsize=8) 
-
-# ax.set_xticks([1990,2010])
-# ax.set_xticklabels([2001,2016])
-ax.set_ylabel("Normalized\nWUI population")
-# ylabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
-# ax.set_yticklabels(ylabels)
-# Hide the right and top spines
-ax.set_yticks([100,150,200,250])
-ax.spines['right'].set_visible(False)
-ax.spines['top'].set_visible(False)
-
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI timeseries normalized.eps"), format = "eps")
-
-
-
 # %% stacked bar plot
 cumsum = ts.diff().dropna().cumsum(axis = 1)
-fig, ax = plt.subplots(figsize =(3.2,3))
+fig, ax = plt.subplots(figsize =(3,3))
 
-ax.bar(xticks,height = ts.diff().dropna().values[0], bottom= [0]+list(cumsum.values[0][:-1]), align = "center",\
+ax.bar(xticks,height = ts.diff().dropna().values[0], bottom= [0]+list(cumsum.values[0][:-1]), align = "edge",\
        color = colors,width = width,edgecolor = "k",linewidth = 1.5)
 
 ax.set_xlabel("Risk")
@@ -289,29 +238,24 @@ ylabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
 ax.set_yticklabels(ylabels)
 
 ax.set_xticks(xticks)
-ax.set_xticklabels(["Low","Medium","High"])
+ax.set_xticklabels(["Low","Medium","High","Extreme"])
 ax.set_xlabel("Risk")
-
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot absolute stacked.eps"), format = "eps")
-
-
 #%% before after total WUI pop plots
-fig, ax = plt.subplots(figsize =(3.2,3))
+fig, ax = plt.subplots(figsize =(3,3))
 thinWidth = 0.6
 ax.bar(xticks,height = ts.iloc[0], align = "center",bottom = [0]+list(ts.iloc[-1].cumsum())[:-1],\
        color = colors,width = thinWidth,edgecolor = "k",linewidth = 1.5, label = "1990")
 bars =ax.bar(xticks,height =ts.diff().dropna().values[0], \
              bottom = [ts.iloc[0,0]]+\
                  [ts.iloc[1,0]+ts.iloc[0,1]]+\
-                     [ts.iloc[1,:2].sum()+ts.iloc[0,2]],\
+                     [ts.iloc[1,:2].sum()+ts.iloc[0,2]]+\
+                         [ts.iloc[1,:3].sum()+ts.iloc[0,3]],\
                              align = "center",\
         color = colors,width = thinWidth,edgecolor = "k",linewidth = 1.5, \
             label = "$\Delta$ 1990-2010")
 for bar in bars:
     bar.set_hatch("////")
-ax.legend(frameon = False, loc = "lower right")
+ax.legend(frameon = False)
 # ax.legend(frameon = False, bbox_to_anchor = (1.05,1.05), loc = "upper right")    
 ax.set_xlabel("Risk")
 ax.set_ylabel("WUI population")
@@ -320,85 +264,24 @@ ylabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_yticks()/1e6]
 ax.set_yticklabels(ylabels)
 
 ax.set_xticks(xticks)
-ax.set_xticklabels(["Low","Medium","High"])
+ax.set_xticklabels(["Low","Medium","High","Extreme"])
 ax.set_xlabel("Risk")
 
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise before after bar plot stacked.eps"), format = "eps")
-
-
 #%% only 1 bar
-fig, ax = plt.subplots(figsize =(3,1.5))
+fig, ax = plt.subplots(figsize =(3,1))
 
 ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = colors, legend = False, ax = ax, edgecolor = "k")
 
-# xlabels = ['{:,.0f}'.format(x) + ' million' for x in ax.get_xticks()/1e6]
-ax.set_xticks([0,1e7,2e7])
-ax.set_xticklabels(['0 million', '10 million' , '20 million'])
+xlabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_xticks()/1e6]
+ax.set_xticklabels(xlabels)
 # ax.set_yticklabels([2016,2001])
-ax.set_xlabel("")
-
-ax.set_title("WUI population")
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop stacked 1 bar absolute.eps"), format = "eps")
-
+ax.set_xlabel("WUI population")
 
 #%% only 1 bar proportionaized to 100
-fig, ax = plt.subplots(figsize =(3,1.5))
+fig, ax = plt.subplots(figsize =(3,1))
 
 (ts.divide(ts.sum(axis = 1), axis = 0)*100).sort_index(ascending = False).plot(kind = "barh", stacked = True, color = colors, legend = False, ax = ax, edgecolor = "k")
 ax.set_xlabel("% WUI population")
-
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop stacked 1 bar relative.eps"), format = "eps")
-
-
-#%% 4 bars starting with shortened y axis
-sns.set(font_scale = 1.0, style = "ticks")
-
-fig, ax = plt.subplots(figsize = (3,4))
-y = ts.diff().dropna()
-y = (y/ts.iloc[0]*100).values[0]
-
-y = np.insert(y,0, ts.sum(axis=1).diff().dropna().iloc[0]/ts.sum(axis=1).iloc[0]*100)
-
-rects = ax.bar([0,1,2,3],y,align = "center",\
-       color = ['grey']+colors,width = 0.7,edgecolor = "k",linewidth = 1.5)
-    
-ax.set_xticks([0,1,2,3])
-ax.set_xticklabels(["All\nWUI","Low\nrisk","Medium\nrisk","High\nrisk"])
-ax.set_xlabel("")
-ax.set_title("% growth in WUI population")
-ax.set_ylabel("% change in WUI population (1990-2010)")
-ax.set_ylim(90,170)
-
-def autolabel(rects):
-    """Attach a text label above each bar in *rects*, displaying its height."""
-    for rect in rects:
-        height = int(rect.get_height())
-        ax.annotate('+{}%'.format(height),
-                    xy=(rect.get_x() + rect.get_width() / 2, height),
-                    xytext=(0, 3),  # 3 points vertical offset
-                    textcoords="offset points",
-                    ha='center', va='bottom', fontsize = 11)
-
-ax.annotate('1990 to 2010',
-                    xy=(0.38,0.7), xycoords = "axes fraction",
-                    xytext=(0.38,0.7),
-                    textcoords="axes fraction",
-                    ha='center', va='bottom', fontsize = 11)
-
-autolabel(rects)
-
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative wrt 1990 4 bars.eps"), format = "eps")
-
-
-
 
 
 #%% non wui + WUI
@@ -406,7 +289,7 @@ if SAVEPLOT:
 
 # wuiNonWui = pd.DataFrame({"WUI":[2.53788e+06,2.64769e+06 ,2.34899e+06 ,3.21948e+06],\
 #               "Non-WUI":[7.3954e+06, 7.11049e+06, 7.377e+06 , 7.26205e+06], \
-#                   }, index =["Low","Medium","High"]).T
+#                   }, index =["Low","Medium","High","Extreme"]).T
     
 
 # fig, ax = plt.subplots(figsize =(3,3))
@@ -432,17 +315,11 @@ if SAVEPLOT:
 # ax.set_yticklabels(ylabels)
 
 # ax.set_xticks(xticks)
-# ax.set_xticklabels(["Low","Medium","High"])
+# ax.set_xticklabels(["Low","Medium","High","Extreme"])
 # ax.set_xlabel("Risk")
 map_kwargs = dict(llcrnrlon=-119,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
         projection='lcc',lat_1=33,lat_2=45,lon_0=-95)
 scatter_kwargs=dict(cmap = ListedColormap(["grey"]))
-fig, ax = plt.subplots(figsize=(3,3))
-fig, ax, m, plot = plotmap(gt = gt, var = np.where(wui1990>0, wui1990, np.nan),map_kwargs=map_kwargs \
-                           ,scatter_kwargs=scatter_kwargs, marker_factor = 0.5, 
-                     fill = "white",background="white",fig=fig, ax=ax,
-                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
-
 fig, ax = plt.subplots(figsize=(3,3))
 fig, ax, m, plot = plotmap(gt = gt, var = np.where(wui2010>0, wui2010, np.nan),map_kwargs=map_kwargs \
                            ,scatter_kwargs=scatter_kwargs, marker_factor = 0.5, 

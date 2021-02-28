@@ -679,3 +679,4 @@ ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = col
 xlabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_xticks()/1e6]
 ax.set_xticklabels(xlabels)
 ax.set_yticklabels([2010,1990])
+ax.set_xlabel("WUI Population")

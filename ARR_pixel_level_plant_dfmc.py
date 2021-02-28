@@ -32,7 +32,7 @@ from pingouin import partial_corr
 from scipy import stats
 
 
-sns.set(font_scale = 0.9, style = "ticks")
+sns.set(font_scale = 1., style = "ticks")
 
 dfmcDict = {"100hr":2, "1000hr":3}
 
@@ -387,7 +387,7 @@ def clean (x, y):
     y = y[~inds]
 
     return x,y
-sns.set(font_scale = 0.9, style = "ticks")
+sns.set(font_scale = 1., style = "ticks")
 fig, ax = plt.subplots(figsize = (3,3))
 ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 # ax.set_xlim(0,1)
@@ -573,7 +573,7 @@ ax.set_ylabel(r'PWS')
 
 #%% PWS computation figures
     
-sns.set(font_scale = 1.5, style = "ticks")
+sns.set(font_scale = 1., style = "ticks")
 
 df = pd.DataFrame({"r2": [x[0] for x in out], "x_loc": [x[2] for x in out], "y_loc": [x[3] for x in out]  })
 toJoin = pd.DataFrame([x[1] for x in out])
@@ -586,73 +586,134 @@ master = master.rename(columns = {"dfmc(t)":"dfmc(t-0)"})
 
 
 nbins = 2
-cmap = plt.get_cmap('viridis',nbins)    # PiYG
-colors = [mpl.colors.rgb2hex(cmap(i))  for i in range(cmap.N)]
-inds = df.loc[(df.r2>=0.8),"pixel_index"]
 
+fig, (ax2, ax1) = plt.subplots(1, 2, figsize = (3.6,1.6), sharey = True)
+ax1.spines['right'].set_visible(False)
+ax1.spines['top'].set_visible(False)
+ax2.spines['right'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+inds = df.loc[(df.r2>=0.8),"pixel_index"]
 for ind_ in [60]:
     ind = inds.iloc[ind_]
     subMaster = master.loc[master.pixel_index==ind]
     subDf = df.loc[df.pixel_index==ind]
-    fig, ax = plt.subplots(figsize = (3,3))
-
-    ctr = 0
-    mctr = 0
+    print(subDf)
+    ax1.set_xlim(-5,5)
     for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(1).index:
         if subDf[i].values[0]!=0:
-
             sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker ="o" ,\
-                scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
-            # xs = np.array([-5,5])
-            # ys = xs*subDf[i].values[0]
-            # ax.plot(xs,ys,"--")
-            # mctr+=1
-            pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
-            ax.annotate('PWS=%0.2f'%pws,
-            xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
-            ax.set_xlabel("DFMC'")
-            ax.set_ylabel("LFMC'")
-            ax.set_title(ind_)  
-            ax.set_ylim(-20,20)
-            ax.set_xlim(-5,5)
-            ax.set_xticks([-5,-2.5,0,2.5,5])
+                scatter_kws ={"s":30,"edgecolor":"grey","color" :"#f2d600","edgecolor":"grey"},\
+                    ax = ax1, truncate = False)
 
-            ax.set_title("")
-            plt.show()
+            pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
+            # ax1.set_title('Sample pixel PWS=%0.2f'%pws, fontsize = 8)
+            ax1.annotate('Sample pixel PWS=%0.2f'%pws, fontsize = 9, 
+            xy=(0.5, 1.1), ha = "center",textcoords='axes fraction')
+            ax1.set_xlabel("")
+            ax1.set_ylabel("")
+            # ax.set_title(ind_)  
+            ax1.set_ylim(-20,20)
+            
+            ax1.set_xticks([-5,0,5])
+
+            ax1.set_title("")
     
-inds = df.loc[(df.r2<0.05),"pixel_index"]
-ctr+=1    
-for ind_ in [5]:
+inds = df.loc[df.r2<=0.05,"pixel_index"]
+for ind_ in [6]:
     ind = inds.iloc[ind_]
     subMaster = master.loc[master.pixel_index==ind]
     subDf = df.loc[df.pixel_index==ind]
-    fig, ax = plt.subplots(figsize = (3,3))
+    print(subDf)
     mctr=0   
+    ax2.set_xlim(-5,5)
     for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(1).index:
         if subDf[i].values[0]!=0:
             sns.regplot(subMaster["dfmc(t-%d)"%i], subMaster["lfmc(t)"],color = "k",marker="o", \
-                scatter_kws ={"edgecolor":"grey","color" : colors[nbins-ctr-1],"edgecolor":"grey"})
+                scatter_kws ={'s':30,"edgecolor":"grey","color" : "#1565c0","edgecolor":"grey"}, \
+                    ax = ax2, truncate = False)
             mctr+=1
     pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
-    ax.annotate('PWS=%0.2f'%pws,
-            xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
-    ax.set_xlabel("DFMC'")
-    ax.set_ylabel("LFMC'")
-    ax.set_title(ind_)
-    ax.set_ylim(-20,20)
-    ax.set_title("")
-    ax.set_xlim(-5,5)
-    ax.set_xticks([-5,-2.5,0,2.5,5])
-    plt.show()
+    # ax2.set_title('Sample pixel PWS=%0.2f'%pws)
+    ax2.annotate('Sample pixel PWS=%0.2f'%pws, fontsize = 9, 
+            xy=(0.5, 1.1), ha = "center",textcoords='axes fraction')
+    ax2.set_xlabel("")
+    ax2.set_ylabel("LFMC anomaly")
 
-# %% PWS calculation time series plot
+    ax2.set_title("")
+   
+    ax2.set_xticks([-5,0,5])
+    ax2.set_yticks([-20,-10,0,10,20])
+fig.text(x = 0.5 ,y = -0.07, s = r'Climate-derived fuel moisture anomaly', ha ="center",va="top")
+# plt.tight_layout()
+plt.show()
 
-# for ind_ in [60,5]:
+# lowBin = np.load(os.path.join(dir_root, "data","pws_bins","PWS_bin_1.npy"))
+# ys,xs = np.where(lowBin==True)
+# ctr=0
+# xPoints = []
+# yPoints = []
+# for (x,y) in zip(xs,ys):
 #     ind = inds.iloc[ind_]
-#     master = master.rename(columns = {"dfmc(t)":"dfmc(t-0)"})
-#     subMaster = master.loc[master.pixel_index==ind]
-#     subDf = df.loc[df.pixel_index==ind]
+#     subMaster = master.loc[(master.x_loc==x)&(master.y_loc==y)]
+#     subDf = df.loc[(df.x_loc==x)&(df.y_loc==y)]
+    
+#     # mctr=0   
+#     for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(1).index:
+#         if subDf[i].values[0]!=0:
+#             xPoints = xPoints + list(subMaster["dfmc(t-%d)"%i])
+#             yPoints = yPoints + list(subMaster["lfmc(t)"])
+#     print(ctr)     
+#     ctr+=1
+# fig, ax = plt.subplots(figsize = (1.8,1.8))
+# sns.regplot(x =np.array(xPoints), y=np.array(yPoints),color = "k",marker="o", ax = ax, \
+#             scatter_kws ={'s':0.1,"color" : colors[0], 'alpha':0.003})
+#         # mctr+=1
+# # pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
+# # ax.annotate('PWS=%0.2f'%pws,
+#         # xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
+# ax.set_xlabel("Climatic FMC\nAnomaly")
+# ax.set_ylabel("LFMC Anomaly")
+# ax.set_title(ind_)
+# ax.set_ylim(-50,50)
+# ax.set_title("")
+#     # ax.set_xlim(-5,5)
+#     # ax.set_xticks([-5,0,5])
+# plt.show()
 
-#     fig, ax = plt.subplots(figsize = (6,3))
-#     ax.plot(subMaster.date, subMaster['lfmc(t)'],label = "LFMC'",marker = "o")
-#     ax.plot(subMaster.date, subMaster['dfmc(t-0)'],label = "DFMC'",marker = "o")
+
+# highBin = np.load(os.path.join(dir_root, "data","pws_bins","PWS_bin_15.npy"))
+# ys,xs = np.where(highBin==True)
+# ctr=0
+# xPoints = []
+# yPoints = []
+# for (x,y) in zip(xs,ys):
+#     ind = inds.iloc[ind_]
+#     subMaster = master.loc[(master.x_loc==x)&(master.y_loc==y)]
+#     subDf = df.loc[(df.x_loc==x)&(df.y_loc==y)]
+    
+#     # mctr=0   
+#     for i in subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).iloc[0].nlargest(1).index:
+#         if subDf[i].values[0]!=0:
+#             xPoints = xPoints + list(subMaster["dfmc(t-%d)"%i])
+#             yPoints = yPoints + list(subMaster["lfmc(t)"])
+#     print(ctr)     
+#     ctr+=1
+# fig, ax = plt.subplots(figsize = (1.8,1.8))
+# sns.regplot(x =np.array(xPoints), y=np.array(yPoints),color = "k",marker="o", ax = ax, \
+#             scatter_kws ={'s':0.01,"color" : colors[1], 'alpha':0.001})
+#         # mctr+=1
+# # pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
+# # ax.annotate('PWS=%0.2f'%pws,
+#         # xy=(0.95, 0.05), ha = "right",textcoords='axes fraction')
+# ax.set_xlabel("Climatic FMC\nAnomaly")
+# ax.set_ylabel("LFMC Anomaly")
+# ax.set_title(ind_)
+# # ax.set_ylim(-20,20)
+# ax.set_title("")
+#     # ax.set_xlim(-5,5)
+#     # ax.set_xticks([-5,0,5])
+# plt.show()
+
+#%%
+# first PWS bin = 0.10661708 0.35133948
+# Last bin of PWS =1.58814322 2.06

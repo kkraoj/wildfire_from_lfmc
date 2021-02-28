@@ -7,6 +7,7 @@ Created on Mon May 18 17:14:03 2020
 
 dir_data = r"D:\Krishna\projects\wildfire_from_lfmc\data\tables"
 dir_root = r"D:\Krishna\projects\wildfire_from_lfmc"
+dir_fig = r"D:\Krishna\projects\wildfire_from_lfmc\figures"
 lc_dict = { 
             50: 'Closed broadleaf\ndeciduous',
             70: 'Closed needleleaf\nevergreen',
