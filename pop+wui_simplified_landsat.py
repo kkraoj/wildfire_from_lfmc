@@ -21,6 +21,7 @@ from scipy.stats import gaussian_kde
 from matplotlib.colors import ListedColormap
 import matplotlib as mpl
 import matplotlib.ticker as mtick
+<<<<<<< HEAD
 import matplotlib.colors as colors
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from plotmap import plotmap
@@ -29,6 +30,9 @@ import plotly.express as px
 import squarify
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
                                AutoMinorLocator)
+=======
+
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 
 
 def subset_CA(wui):
@@ -36,11 +40,16 @@ def subset_CA(wui):
     return wuiCA
     
 sns.set(font_scale = 1.1, style = "ticks")
+<<<<<<< HEAD
 # wuiNames = ["urban2001NeighborsResampledGee.tif","urban2016NeighborsResampledGee.tif"]
 wuiNames = ["wui1990.tif","wui2010.tif"]
 # popNames = ["pop2000.tif","pop2010.tif"]
 popNames = ["pop1990.tif","pop2010.tif"]
 # popNames = ["worldPopDensity2005.tif","worldPopDensity2010.tif"]
+=======
+wuiNames = ["wui1992Arc.tif","wui2016Arc.tif"]
+popNames = ["pop1990.tif","pop2010.tif"]
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 
 res = 3.5932611
 plantClimatePath = os.path.join(dir_root, "data","arr_pixels_lfmc_dfmc_anomalies","lfmc_dfmc_100hr_lag_6_lfmc_dfmc_norm_positive_coefSum.tif")
@@ -50,6 +59,7 @@ plantClimate = np.array(ds.GetRasterBand(1).ReadAsArray())
 
 #%% % absolute population timeseries split by pc quantiles
 
+<<<<<<< HEAD
 ctr = 0
 wuiThresh = 0.0
 for (wuiName, popName) in zip(wuiNames, popNames):
@@ -59,16 +69,33 @@ for (wuiName, popName) in zip(wuiNames, popNames):
     wui = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
     wui[wui<0] = np.nan
     # print(np.nansum(wui))
+=======
+thresh =0.4
+ctr = 0
+wuiThresh = 5e5
+for (wuiName, popName) in zip(wuiNames, popNames):
+    
+    fullfilename = os.path.join(dir_root, "data","WUI","arc_export",wuiName)
+    ds = gdal.Open(fullfilename)
+    wui = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
+    wui[wui<0] = np.nan
+    wui = wui>=wuiThresh
+    print(np.nansum(wui))
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 
     fullfilename = os.path.join(dir_root, "data","population","gee",popName)
     ds = gdal.Open(fullfilename)
     pop = np.array(ds.GetRasterBand(1).ReadAsArray())*res**2
+<<<<<<< HEAD
     # ds = None
+=======
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
     if pop.shape[0]!=645:
         pop = pop[1:646]
     pop[pop<0] = 0
     # pop = subset_CA(pop)
     # wui = subset_CA(wui)
+<<<<<<< HEAD
     # pop = pop*wui
     plt.imshow(wui)
     plt.show()
@@ -97,12 +124,15 @@ for (wuiName, popName) in zip(wuiNames, popNames):
     else:
         pop2010 = pop.copy()
     
+=======
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
     pop = pop[wui==1]
     pc = plantClimate[wui==1]
     df = pd.DataFrame({"pc":pc,"pop":pop})
     df.dropna(inplace = True)
     ctr+=1
     
+<<<<<<< HEAD
     wui = wui*1.0
         
     if wuiName == wuiNames[0]:
@@ -150,6 +180,9 @@ scatter_kwargs = dict(cmap = "Oranges",vmin = 0, vmax = 1,alpha = 0.05)
 
 
     
+=======
+
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 #%% growth rates for 10 bins
 
 
@@ -160,23 +193,39 @@ colors = [mpl.colors.rgb2hex(cmap(i))  for i in range(cmap.N)]
     # rgb2hex accepts rgb or rgba
 _, vulLabels = pd.qcut(df['pc'],nbins, retbins = True)
 vulLabels = np.round(vulLabels, 2)
+<<<<<<< HEAD
 # vulLabels = np.linspace(0,2,nbins+1)
 ts = pd.DataFrame(columns = vulLabels[:-1], index = [1990,2010])
+=======
+ts = pd.DataFrame(columns = vulLabels[:-1], index = [1990,2010])
+thresh =0.4
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 ctr = 0
 
 for (wuiName, popName) in zip(wuiNames, popNames):
     
+<<<<<<< HEAD
     fullfilename = os.path.join(dir_root, "data","WUI",wuiName)
+=======
+    fullfilename = os.path.join(dir_root, "data","WUI","arc_export",wuiName)
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
     ds = gdal.Open(fullfilename)
     wui = np.array(ds.GetRasterBand(1).ReadAsArray())
     wui = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
     wui[wui<0] = np.nan
+<<<<<<< HEAD
     # plt.hist(wui.flatten(),bins = 100)
     # plt.show()
+=======
+    plt.hist(wui.flatten(),bins = 100)
+    plt.show()
+    wui = wui>=wuiThresh
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
     
     fullfilename = os.path.join(dir_root, "data","population","gee",popName)
     ds = gdal.Open(fullfilename)
     pop = np.array(ds.GetRasterBand(1).ReadAsArray())*res**2
+<<<<<<< HEAD
     ds = None
     if pop.shape[0]!=645:
         pop = pop[0:645]
@@ -188,6 +237,14 @@ for (wuiName, popName) in zip(wuiNames, popNames):
     pop = pop[wui==1]
     # pop = wui[wui==1].copy()
     # print(len(pop))
+=======
+    if pop.shape[0]!=645:
+        pop = pop[0:645]
+    pop[pop<0] = 0
+    # pop = subset_CA(pop)
+    # wui = subset_CA(wui)
+    pop = pop[wui==1]
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
     pc = plantClimate[wui==1]
     df = pd.DataFrame({"pc":pc,"pop":pop})
     df.dropna(inplace = True)
@@ -196,13 +253,42 @@ for (wuiName, popName) in zip(wuiNames, popNames):
     cum = df.groupby("pcBin").pop.sum()
     ts.loc[1990+ctr*20, :] = cum
     ctr+=1
+<<<<<<< HEAD
 
    
+=======
+ 
+# ts = ts.drop(2000)
+
+fig, ax = plt.subplots(figsize = (3,3))
+ax.scatter(ts.loc[1990],ts.loc[2010],c = ts.columns, cmap = "viridis",s = 80, edgecolor  = "grey")
+ax.set_xlabel("1990 WUI population")
+ax.set_ylabel("2010 WUI population")
+# ax.set_xlim(xmin = 0)
+# ax.set_ylim(ymin = 0)
+ylabels = ['{:,.1f}'.format(x) + 'M' for x in ax.get_yticks()/1e6]
+ax.set_yticklabels(ylabels)
+
+xlabels = ['{:,.1f}'.format(x) + 'M' for x in ax.get_xticks()/1e6]
+ax.set_xticklabels(xlabels)
+
+# Hide the right and top spines
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+
+# Only show ticks on the left and bottom spines
+ax.yaxis.set_ticks_position('left')
+ax.xaxis.set_ticks_position('bottom')
+
+
+
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 density = gaussian_kde(df.pc)
 xs = np.linspace(df.pc.min(),df.pc.max(),100)
 density.covariance_factor = lambda : .25
 density._compute_covariance()
 
+<<<<<<< HEAD
 fig, ax = plt.subplots(figsize = (2,2))
 ax.plot(xs,density(xs), linewidth = 3, color = "grey")
 # for q in [0.0,0.25,0.5,0.75]:
@@ -221,14 +307,35 @@ ax.set_ylabel("Density")
 ax.set_xlabel("PWS")
 ax.set_xticks([0,1,2])
 ax.set_yticks([0,0.5,1])
+=======
+fig, ax = plt.subplots(figsize = (3,3))
+ax.plot(xs,density(xs), linewidth = 3, color = "grey")
+# for q in [0.0,0.25,0.5,0.75]:
+ctr=0
+for q in vulLabels[:-1]:
+    low = q 
+    high = vulLabels[ctr+1]
+    xsq = xs[(xs>=low)&(xs<=high)]
+    densityq = density(xsq)
+    ax.fill_between(xsq, 0, densityq, color = colors[ctr])
+    ctr+=1
+    
+ax.set_xlabel("Plant climate sensitivity")
+ax.set_ylabel("Density")
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 
 ax.spines['right'].set_color('none')
 ax.spines['top'].set_color('none')
 
 fig, ax = plt.subplots(figsize = (3,3))
 
+<<<<<<< HEAD
 ax.bar(ts.columns,ts.diff().dropna().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels),edgecolor = "k")
 ax.set_xlabel("PWS")
+=======
+ax.bar(ts.columns,ts.diff().dropna().values.tolist()[0],align = "edge",color = colors,width = np.diff(vulLabels))
+ax.set_xlabel("Plant climate sensitvity")
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d
 ax.set_ylabel("$\Delta$ WUI population")
 
 ylabels = ['{:,.1f}'.format(x) + 'M' for x in ax.get_yticks()/1e6]
@@ -238,6 +345,7 @@ ax.set_xlim(0,2.1)
 # Hide the right and top spines
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
+<<<<<<< HEAD
 
 ax2 = ax.twinx()
 ax2.plot(xs,density(xs), linewidth = 3, color = "grey")
@@ -680,3 +788,5 @@ ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = col
 xlabels = ['{:,.0f}'.format(x) + ' M' for x in ax.get_xticks()/1e6]
 ax.set_xticklabels(xlabels)
 ax.set_yticklabels([2016,2001])
+=======
+>>>>>>> 0bb73496c52be8a3aa54fdcc92db088d9ae4256d

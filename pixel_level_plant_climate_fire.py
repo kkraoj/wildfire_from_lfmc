@@ -28,6 +28,7 @@ from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
 from plotmap import plotmap
 
 
+
 sns.set(style = "ticks")
 areas_dict = {"NW":np.array([[0,0],[322,435]]),"NE":np.array([[0,435],[322,870]]),"SE":np.array([[322,435],[645,870]]),"SW":np.array([[322,0],[645,435]])}
 
@@ -44,7 +45,6 @@ lc_dict = {'forest':[50,70,90,100, 160],
            'grass':[140, 150]
            # 'crops':[14,20,30]
            }
-
 ppt_dict = {'low':[0,250],
            'medium':[250,750],
            'high':[750,10000]
@@ -104,7 +104,7 @@ def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", loc
         raw = plantClimateMap.flatten()
         raw = raw[~np.isnan(raw)]
         bounds = histedges_equalN(raw, n)
-        # print(bounds)
+
     if localize:
         for quadrant in areas_dict.keys():
             plantClimateQuadrant = localizeUSA(plantClimateMap, area = quadrant)
@@ -164,6 +164,7 @@ def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", loc
                 locs = (plantClimateQuadrant>=lower)&(plantClimateQuadrant<upper)
                 plantClimate_seg.append(np.nanmean(plantClimateQuadrant[locs]))
                 areas.append(locs) 
+
     else:
         for i in range(n):
             lower, upper = bounds[i], bounds[i+1]
@@ -274,6 +275,7 @@ def segregate_fireClimate(areas):
     fig.text(x = 0.5 ,y = -0.07, s = r'Vapor pressure deficit (VPD) (hPa)', ha ="center",va="top")
 
     plt.show()
+
     return np.array(r2),np.array(coefs), np.array(stderrors)
 
 def segregate_ndviPpt(areas):
@@ -403,7 +405,6 @@ def pptizeUSA(array, area = None):
     # sub = array[mask]
     # sub = array[areas_dict[area][0,0]:areas_dict[area][1,0],areas_dict[area][0,1]:areas_dict[area][1,1]]
     return array
-
 
 hr = "100hr"
 var = "coefSum"
@@ -555,6 +556,7 @@ axs[0].set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
 #     ctr+=1
 # # ax.set_xlabel(r"%s, %s"%(var, hr))
 # axs[0].set_ylabel(r"PWS")
+
 # ax.set_title(norm)
 # plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
 
@@ -579,6 +581,7 @@ axs[0].set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
 # # ax.set_title(norm)
 
 # plt.show()
+
 
 
 #%% only fire plot segregated
@@ -640,6 +643,7 @@ axs[0].set_ylabel(r"$\frac{d(BA)}{d(VPD)}$")
 # ax.set_xlabel("PWS")
 
 
+
 #%% plantclimate and landcover
 
 
@@ -684,6 +688,7 @@ ax.set_xlabel("plantClimate")
 ax.set_ylabel("Majority land cover")
 ax.set_yticks([130,140])
 ax.set_yticklabels(["shrubs","grass"])
+
     
 #%% ndvi prior precip
 
@@ -699,6 +704,7 @@ for quadrant in lc_dict.keys():
     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
     ctr+=1
 ax.set_xlabel(r"PWS")
+ax.set_xlabel(r"Plant climate sensitivity")
 ax.set_ylabel(r"r$^2$(PPT$_{t-1}$, NDVI$_t$)")
 
 plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
@@ -709,7 +715,6 @@ df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
 ctr=0
 fig, ax = plt.subplots(figsize = (3,3))
 for quadrant in lc_dict.keys():
-
     ax.errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
                 df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], \
                     yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], \
@@ -720,6 +725,7 @@ for quadrant in lc_dict.keys():
                     edgecolor = "grey",label = quadrant, color = colors[ctr])
     ctr+=1
 ax.set_xlabel(r"PWS")
+
 ax.set_ylabel(r"$\frac{dNDVI_{t}}{dPPT_{t-1}}$")
 
 plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
@@ -753,7 +759,6 @@ plt.show()
 
 # plt.show()
 
-
 #%% ndvi ba
 
 # r2,coefs, stderrors = segregate_ndviBa(areas)
@@ -767,6 +772,7 @@ plt.show()
 #     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = ecoregions_dict[quadrant])
 #     ctr+=1
 # ax.set_xlabel(r"PWS")
+
 # ax.set_ylabel(r"r$^2$(NDVI, BA)")
 
 # plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")
@@ -782,6 +788,7 @@ plt.show()
 #     ax.scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = ecoregions_dict[quadrant])
 #     ctr+=1
 # ax.set_xlabel(r"PWS")
+
 # ax.set_ylabel(r"$\frac{dBA}{dNDVI}$")
 
 # plt.legend(bbox_to_anchor=[1, 1],loc = "upper left")

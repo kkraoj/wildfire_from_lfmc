@@ -34,6 +34,7 @@ from scipy import stats
 
 sns.set(font_scale = 1., style = "ticks")
 
+
 dfmcDict = {"100hr":2, "1000hr":3}
 
 def get_dates(date, maxLag = 6):
@@ -183,6 +184,7 @@ master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"ar
 master.date = pd.to_datetime(master.date)
 master = master.loc[master.date.dt.month>=6]
 
+
 # # # #########
 # print('\r')
 # print('[INFO] Regressing')
@@ -218,6 +220,7 @@ coefRMS = np.clip(np.array(coefRMS), a_min = 0, a_max = 0.6)
 # coefPositiveSum = [np.sum([y for y in x[1:] if y>=0]) for x in coefs]
 coefAbsSum = [np.sum(np.abs(x[1:])) for x in coefs]
 coefMean = [np.mean(x[x!=0]) for x in betas]
+
 # coefDiff = [np.sum(x[1:5]) - np.sum(x[8:12]) for x in coefs]
 # coefAbsDiff = [np.sum(np.abs(x[1:5])) - np.sum(np.abs(x[8:12])) for x in coefs]
 
@@ -239,8 +242,8 @@ plantClimate = ndvi.copy()
 plantClimate[:,:] = np.nan
 plantClimate[y_loc, x_loc] = coefSum
 # plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
-savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefMean.tif"%(hr,lag,norm, coefs_type))
-# savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"PAS_6_jan_2021.tif")
+
+savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefSum.tif"%(hr,lag,norm, coefs_type))
 # save_tif(plantClimate, geotransform, savepath)
 
 # plantClimate = ndvi.copy()
@@ -457,6 +460,14 @@ ax.set_xlabel("Fire season length (days)")
 ax.set_ylabel(r'PWS')
 ##fire season length calculated as number of days in a year when VPD > long term mean for that pixel")
 
+
+fig, ax = plt.subplots(figsize = (3,3))
+ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
+# ax.set_xlim(0,1)
+ax.set_ylim(vmin, vmax)
+ax.set_xlabel("VPD (Hpa)")
+ax.set_ylabel(r'$\sum \beta^{+ve}$')
+###############################################################################
 
 ##############################################################################
 # fig, ax = plt.subplots(figsize = (3,3))
