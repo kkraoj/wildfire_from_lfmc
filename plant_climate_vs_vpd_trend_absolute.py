@@ -23,7 +23,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.patches as patches
 
-SAVEPLOT = False
+SAVEPLOT = True
 sns.set(font_scale = 1., style = "ticks")
 plt.style.use("pnas")
 
@@ -78,7 +78,7 @@ df = pd.DataFrame({"vpdTrend":vpd.flatten(), "sigma": plantClimate.flatten()}).d
 cuts = [df.vpdTrend.min(),0,0.03,0.06,df.vpdTrend.max()]
 bins = len(cuts)-1
 colors = sns.diverging_palette(240, 10,n=(bins-1)*2).as_hex()
-colors = [colors[1]]+sns.color_palette("dark:salmon_r",n_colors = bins).as_hex()[:-1]
+colors = [colors[1]]+sns.color_palette("YlOrBr",n_colors = bins+1).as_hex()[:-2]
 fig, ax = plt.subplots(figsize =(2,3))
 n = []
 for i in range(len(cuts)-1):
@@ -158,29 +158,29 @@ if SAVEPLOT:
 # %% PWS box plot
 
 colorsPWS = ["#f1d4d4","#e6739f","#cc0e74"]
-cuts = [0, 1.0,1.5,4]
-ndf = pd.DataFrame(columns = range(len(cuts)-1), index = range(df.shape[0]))
-for i in range(len(cuts)-1):
-    minVal = cuts[i]
-    maxVal = cuts[i+1]
-    data = df.loc[(df.sigma>=minVal)&(df.sigma<maxVal)]
-    ndf.loc[0:len(data.vpdTrend)-1,i] = data.vpdTrend.values
-ndf.dropna(inplace = True,how = "all")
+# cuts = [0, 1.0,1.5,4]
+# ndf = pd.DataFrame(columns = range(len(cuts)-1), index = range(df.shape[0]))
+# for i in range(len(cuts)-1):
+#     minVal = cuts[i]
+#     maxVal = cuts[i+1]
+#     data = df.loc[(df.sigma>=minVal)&(df.sigma<maxVal)]
+#     ndf.loc[0:len(data.vpdTrend)-1,i] = data.vpdTrend.values
+# ndf.dropna(inplace = True,how = "all")
 
-# ndf = ndf[[3,2,1,0]]
-fig, ax = plt.subplots(figsize =(0.4, 2.6))
-sns.boxplot(data= ndf, ax = ax,palette = colorsPWS,orient = "v",\
-            saturation = 1,width = 0.7,fliersize = 0)
+# # ndf = ndf[[3,2,1,0]]
+# fig, ax = plt.subplots(figsize =(0.4, 2.6))
+# sns.boxplot(data= ndf, ax = acontourx,palette = colorsPWS,orient = "v",\
+#             saturation = 1,width = 0.7,fliersize = 0)
 
-ax.set_ylabel("")
-ax.set_xlabel("")
-ax.set_xticks([])
-ax.set_yticks([])
-ax.set_ylim(-0.055,0.15)
+# ax.set_ylabel("")
+# ax.set_xlabel("")
+# ax.set_xticks([])
+# ax.set_yticks([])
+# ax.set_ylim(-0.055,0.15)
 
-ax.spines['right'].set_visible(False)
-ax.spines['top'].set_visible(False)
-ax.spines['bottom'].set_visible(False)
+# ax.spines['right'].set_visible(False)
+# ax.spines['top'].set_visible(False)
+# ax.spines['bottom'].set_visible(False)
 
 #%% VPD trend map
 
@@ -198,7 +198,7 @@ fig, ax, m, plot = plotmap(gt = gt, var = vpd,map_kwargs=map_kwargs ,scatter_kwa
                       fill = "white",background="white",fig = fig,ax=ax,
                       shapefilepath = 'D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
                   shapefilename ='states')
-scatter_kwargs=dict(cmap = ListedColormap(["aqua"]))
+scatter_kwargs=dict(cmap = ListedColormap([colorsPWS[-1]]))
 risk = np.where((vpd>=0.05)&(plantClimate>=1.5), np.ones(plantClimate.shape), 0)
 
 data = gaussian_filter(risk, sigma = 10,order = 0)
@@ -206,6 +206,10 @@ data = gaussian_filter(risk, sigma = 10,order = 0)
                       # fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = 0.1,contourColor = "aqua",
                       # shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 ax.axis('off')
+
+fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
+                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel =0.1,contourColor = colorsPWS[-1],contourWidth = 2,
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 
 # cax = fig.add_axes([0.7, 0.45, 0.03, 0.3])
 # cbar = fig.colorbar(plot, cax=cax, orientation='vertical')
@@ -216,18 +220,18 @@ scatter_kwargs = dict(cmap = "Greys",vmin = 0, vmax = 1,alpha = 0)
 plt.tight_layout()
 
 if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "vpd trend map absolute.eps"), format = "eps")
+    fig.savefig(os.path.join(dir_fig, "vpd trend map absolute.tiff"), format = "tiff")
 plt.show()
 
-fig, ax = plt.subplots(figsize = (3,3), frameon = False)
-fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
-                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = 0.1,contourColor = "aqua",
-                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
-ax.axis('off')
-plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "vpd trend map absolute contours.eps"), format = "eps")
-plt.show()
+# fig, ax = plt.subplots(figsize = (3,3), frameon = False)
+# fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
+#                       fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel =0.1,contourColor = colorsPWS[-1],contourWidth = 2,
+#                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+# ax.axis('off')
+# plt.tight_layout()
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "vpd trend map absolute contours.eps"), format = "eps")
+# plt.show()
 
 
 print(np.nanmean(vpd[plantClimate>=np.nanquantile(plantClimate,0.9)]))
@@ -252,12 +256,12 @@ cbar.set_ticks([-0.2,-0.1,0,0.1,0.2,])
 cbar.set_ticklabels([])
 
 if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "vpd trend map legend.eps"), format = "eps")
+    fig.savefig(os.path.join(dir_fig, "vpd trend map legend.tiff"), format = "tiff")
 
 
 #%% plant climate map
 fig, ax = plt.subplots(figsize = (3,3),frameon = False)
-scatter_kwargs = dict(cmap = "viridis",vmin = 0, vmax = 2,alpha = 1)
+scatter_kwargs = dict(cmap = "PiYG_r",vmin = 0, vmax = 2,alpha = 1)
 ax.axis("off")
 fig, _, m, plot = plotmap(gt = gt, var = plantClimate,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
                       fill = "white",background="white",fig = fig,ax=ax,
@@ -267,7 +271,7 @@ risk = np.where((vpd>=0.05)&(plantClimate>=1.5), np.ones(plantClimate.shape), 0)
 
 data = gaussian_filter(risk, sigma = 10,order = 0)
 fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
-                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = 0.1,contourColor = "aqua",
+                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = 0.1,contourColor = colorsPWS[-1],contourWidth = 2,
                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 cax = fig.add_axes([0.7, 0.45, 0.03, 0.3])
     
@@ -288,14 +292,22 @@ plt.show()
 #%% 2d density plot of PWS vs. VPD trend
 
 
+def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=-1):
+    if n == -1:
+        n = cmap.N
+    new_cmap = mcolors.LinearSegmentedColormap.from_list(
+         'trunc({name},{a:.2f},{b:.2f})'.format(name=cmap.name, a=minval, b=maxval),
+         cmap(np.linspace(minval, maxval, n)))
+    return new_cmap
+
 fig, ax =  plt.subplots(figsize = (3,3))
 
 
 sns.kdeplot(data = df.sample(int(1e4), random_state =1), x = "sigma",y = "vpdTrend",\
-    fill=True,cmap="mako_r",levels = 10, ax = ax)
+    fill=True,cmap="gray_r",levels = 10, ax = ax)
 lw = 2
 
-rect = patches.Rectangle((1.5,0.05),0.5,0.1,linewidth=3,edgecolor='aqua',facecolor='none', clip_on = False, zorder = 101)
+rect = patches.Rectangle((1.5,0.05),0.5,0.1,linewidth=3,edgecolor=colorsPWS[-1],facecolor='none', clip_on = False, zorder = 101)
 ax.set_xlim(0,2)
 ax.set_ylim(-0.05,0.15)
 ax.add_patch(rect)
@@ -305,12 +317,13 @@ ax.hlines(y = df.vpdTrend.median(), xmin = 0, xmax =2,  linewidth = 0.5, \
 ax.vlines(x = df.sigma.median(), ymin = -0.05, ymax =0.15,  linewidth = 0.5, \
           linestyle = "--", color = "dimgrey", label = "per axis\nmedians")
 ax.set_ylabel("VPD trend (hPa/yr)")
-ax.set_xlabel("Plant-water sensitivity")
+ax.set_xlabel("Plant-water sensitivity (PWS)")
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.legend(loc = "lower right", frameon = False, bbox_to_anchor = (1.05,-0.05), fontsize = 9)
 plt.tight_layout()
 
+df.loc[(df.vpdTrend>=df.vpdTrend.median())&(df.sigma>=df.sigma.median())].shape[0]/df.shape[0]
 if SAVEPLOT:
     fig.savefig(os.path.join(dir_fig, "vpd PWS 2d density tall.eps"), format = "eps")
 
