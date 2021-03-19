@@ -33,6 +33,7 @@ from scipy import stats
 
 
 sns.set(font_scale = 1., style = "ticks")
+plt.style.use("pnas")
 
 
 dfmcDict = {"100hr":2, "1000hr":3}
@@ -341,7 +342,6 @@ y = np.linspace(start = gt[3],  stop= gt[3]+data.shape[0]*gt[5], num = data.shap
 x, y = np.meshgrid(x, y)
 
 enlarge = 2
-sns.set(font_scale = 0.7*enlarge, style = "ticks")
 fig, ax = plt.subplots(figsize=(3*enlarge,3*enlarge))
 
 m = Basemap(llcrnrlon=-119,llcrnrlat=22,urcrnrlon=-92,urcrnrlat=53,
@@ -390,7 +390,9 @@ def clean (x, y):
     y = y[~inds]
 
     return x,y
-sns.set(font_scale = 1., style = "ticks")
+
+
+
 fig, ax = plt.subplots(figsize = (3,3))
 ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
 # ax.set_xlim(0,1)
@@ -398,33 +400,23 @@ ax.set_ylim(0,2)
 x,y = clean(vpd,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 print("R2 for PWS and VPD mean = %0.3f"%r_value**2)
-ax.set_xlabel("VPD (Hpa)")
-ax.set_ylabel(r'PWS')
-###############################################################################
-fig, ax = plt.subplots(figsize = (3,3))
-ax.scatter(ndvi, plantClimate, alpha = 0.3, s = 0.001, color = "k")
-x,y = clean(ndvi,plantClimate)
-slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PWS and NDVI = %0.3f"%r_value**2)
-# ax.set_xlim(0,1)
-ax.set_ylim(0,2)
-ax.set_xlabel("NDVI")
-ax.set_ylabel(r'PWS')
+ax.set_xlabel("Mean VPD (hPa)")
+ax.set_ylabel(r'Plant-water sensitivity (PWS)')
 
 ################################
-filename = os.path.join(dir_root, "data","mean","vpdMax.tif")
-ds = gdal.Open(filename)
-vpd = np.array(ds.GetRasterBand(1).ReadAsArray())
+# filename = os.path.join(dir_root, "data","mean","vpdMax.tif")
+# ds = gdal.Open(filename)
+# vpd = np.array(ds.GetRasterBand(1).ReadAsArray())
 
-fig, ax = plt.subplots(figsize = (3,3))
-ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
-# ax.set_xlim(0,1)
-ax.set_ylim(0,2)
-x,y = clean(vpd,plantClimate)
-slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PWS and VPD max = %0.3f"%r_value**2)
-ax.set_xlabel("Max VPD (Hpa)")
-ax.set_ylabel(r'PWS')
+# fig, ax = plt.subplots(figsize = (3,3))
+# ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
+# # ax.set_xlim(0,1)
+# ax.set_ylim(0,2)
+# x,y = clean(vpd,plantClimate)
+# slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+# print("R2 for PWS and VPD max = %0.3f"%r_value**2)
+# ax.set_xlabel("Max VPD (hPa)")
+# ax.set_ylabel(r'Plant-water sensitivity (PWS)')
 
 
 
@@ -440,8 +432,8 @@ ax.set_ylim(0,2)
 x,y = clean(vpd,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 print("R2 for PWS and VPD std = %0.3f"%r_value**2)
-ax.set_xlabel("VPD s.d. (Hpa)")
-ax.set_ylabel(r'PWS')
+ax.set_xlabel("VPD standard deviation (hPa)")
+ax.set_ylabel(r'Plant-water sensitivity (PWS)')
     
 
 ################################
@@ -456,17 +448,10 @@ ax.set_ylim(0,2)
 x,y = clean(data,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 print("R2 for PWS and fire season length = %0.3f"%r_value**2)
-ax.set_xlabel("Fire season length (days)")
-ax.set_ylabel(r'PWS')
+ax.set_xlabel("Dry season length (days)")
+ax.set_ylabel(r'Plant-water sensitivity (PWS)')
 ##fire season length calculated as number of days in a year when VPD > long term mean for that pixel")
 
-
-fig, ax = plt.subplots(figsize = (3,3))
-ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
-# ax.set_xlim(0,1)
-ax.set_ylim(vmin, vmax)
-ax.set_xlabel("VPD (Hpa)")
-ax.set_ylabel(r'$\sum \beta^{+ve}$')
 ###############################################################################
 
 ##############################################################################
@@ -584,7 +569,6 @@ ax.set_ylabel(r'$\sum \beta^{+ve}$')
 
 #%% PWS computation figures
     
-sns.set(font_scale = 1., style = "ticks")
 
 df = pd.DataFrame({"r2": [x[0] for x in out], "x_loc": [x[2] for x in out], "y_loc": [x[3] for x in out]  })
 toJoin = pd.DataFrame([x[1] for x in out])
@@ -619,7 +603,7 @@ for ind_ in [60]:
             pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
             # ax1.set_title('Sample pixel PWS=%0.2f'%pws, fontsize = 8)
             ax1.annotate('Sample pixel PWS=%0.2f'%pws, fontsize = 9, 
-            xy=(0.5, 1.1), ha = "center",textcoords='axes fraction')
+            xy=(0.5, 1.1), ha = "center",textcoords='axes fraction', weight = "bold")
             ax1.set_xlabel("")
             ax1.set_ylabel("")
             # ax.set_title(ind_)  
@@ -646,7 +630,7 @@ for ind_ in [6]:
     pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
     # ax2.set_title('Sample pixel PWS=%0.2f'%pws)
     ax2.annotate('Sample pixel PWS=%0.2f'%pws, fontsize = 9, 
-            xy=(0.5, 1.1), ha = "center",textcoords='axes fraction')
+            xy=(0.5, 1.1), ha = "center",textcoords='axes fraction', weight = "bold")
     ax2.set_xlabel("")
     ax2.set_ylabel("LFMC anomaly")
 

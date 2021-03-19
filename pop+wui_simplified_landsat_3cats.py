@@ -30,13 +30,14 @@ import squarify
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
                                AutoMinorLocator)
 
-SAVEPLOT = False
+SAVEPLOT = True
 
 def subset_CA(wui):
     wuiCA = wui[200:450,:300]
     return wuiCA
     
-sns.set(font_scale = 1.0, style = "ticks")
+sns.set(font_scale = 1., style = "ticks")
+plt.style.use("pnas")
 # wuiNames = ["wui1990.tif","wui2000.tif","wui2010.tif"]
 # popNames = ["pop1990.tif","pop2000.tif","pop2010.tif"]
 
@@ -328,10 +329,10 @@ if SAVEPLOT:
     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise before after bar plot stacked.eps"), format = "eps")
 
 
-#%% only 1 bar
+#%% only 1 stacked bar per year
 fig, ax = plt.subplots(figsize =(3,1.5))
 
-ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = colors, legend = False, ax = ax, edgecolor = "k")
+ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = colors, legend = False, ax = ax, edgecolor = "k", linewidth = 0.7)
 
 # xlabels = ['{:,.0f}'.format(x) + ' million' for x in ax.get_xticks()/1e6]
 ax.set_xticks([0,1e7,2e7])
@@ -339,14 +340,19 @@ ax.set_xticklabels(['0 million', '10 million' , '20 million'])
 # ax.set_yticklabels([2016,2001])
 ax.set_xlabel("")
 
-ax.set_title("WUI population")
+ax.set_title("WUI population", weight = "bold")
+
+# Hide the right and top spines
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+
 plt.tight_layout()
 if SAVEPLOT:
     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop stacked 1 bar absolute.eps"), format = "eps")
 
 
 #%% only 1 bar proportionaized to 100
-fig, ax = plt.subplots(figsize =(3,1.5))
+fig, ax = plt.subplots(figsize =(3.5,1.5))
 
 (ts.divide(ts.sum(axis = 1), axis = 0)*100).sort_index(ascending = False).plot(kind = "barh", stacked = True, color = colors, legend = False, ax = ax, edgecolor = "k")
 ax.set_xlabel("% WUI population")
@@ -357,21 +363,20 @@ if SAVEPLOT:
 
 
 #%% 4 bars starting with shortened y axis
-sns.set(font_scale = 1.0, style = "ticks")
 
-fig, ax = plt.subplots(figsize = (3,4))
+fig, ax = plt.subplots(figsize = (3.5,4))
 y = ts.diff().dropna()
 y = (y/ts.iloc[0]*100).values[0]
 
 y = np.insert(y,0, ts.sum(axis=1).diff().dropna().iloc[0]/ts.sum(axis=1).iloc[0]*100)
 
 rects = ax.bar([0,1,2,3],y,align = "center",\
-       color = ['grey']+colors,width = 0.7,edgecolor = "k",linewidth = 1.5)
+       color = ['grey']+colors,width = 0.7,edgecolor = "k",linewidth = 1)
     
 ax.set_xticks([0,1,2,3])
-ax.set_xticklabels(["All\nWUI","Low\nrisk","Medium\nrisk","High\nrisk"])
+ax.set_xticklabels(["All\nWUI","Low\ndanger","Medium\ndanger","High\ndanger"])
 ax.set_xlabel("")
-ax.set_title("% growth in WUI population")
+ax.set_title("% growth in WUI population", weight = "bold")
 ax.set_ylabel("% change in WUI population (1990-2010)")
 ax.set_ylim(90,170)
 
@@ -385,13 +390,17 @@ def autolabel(rects):
                     textcoords="offset points",
                     ha='center', va='bottom', fontsize = 11)
 
-ax.annotate('1990 to 2010',
-                    xy=(0.38,0.7), xycoords = "axes fraction",
-                    xytext=(0.38,0.7),
-                    textcoords="axes fraction",
-                    ha='center', va='bottom', fontsize = 11)
+# ax.annotate('1990 to 2010',
+#                     xy=(0.38,0.7), xycoords = "axes fraction",
+#                     xytext=(0.38,0.7),
+#                     textcoords="axes fraction",
+#                     ha='center', va='bottom', fontsize = 11)
 
 autolabel(rects)
+
+# Hide the right and top spines
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
 
 plt.tight_layout()
 if SAVEPLOT:
@@ -448,3 +457,10 @@ fig, ax, m, plot = plotmap(gt = gt, var = np.where(wui2010>0, wui2010, np.nan),m
                            ,scatter_kwargs=scatter_kwargs, marker_factor = 0.5, 
                      fill = "white",background="white",fig=fig, ax=ax,
                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
+fig, ax = plt.subplots(figsize=(3,3))
+fig, ax, m, plot = plotmap(gt = gt, var = np.where(wuiDiff>0, wui2010, np.nan),map_kwargs=map_kwargs \
+                           ,scatter_kwargs=scatter_kwargs, marker_factor = 0.5, 
+                     fill = "white",background="white",fig=fig, ax=ax,
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+

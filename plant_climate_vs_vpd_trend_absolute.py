@@ -23,7 +23,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.patches as patches
 
-SAVEPLOT = True
+SAVEPLOT = False
 sns.set(font_scale = 1., style = "ticks")
 plt.style.use("pnas")
 
@@ -328,6 +328,12 @@ if SAVEPLOT:
     fig.savefig(os.path.join(dir_fig, "vpd PWS 2d density tall.eps"), format = "eps")
 
 plt.show()
+
+
+gg = vpd[plantClimate>=1.5]
+gg = gg[~np.isnan(gg)]
+print((gg>=np.nanmean(vpd)).sum()/len(gg))
+
 #%% 2d density plots VPD trend versus PWS
 # colorsPc = ["#f1d4d4","#e6739f","#cc0e74","#790c5a"]
 
