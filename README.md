@@ -23,7 +23,7 @@ Rest of the scripts are not needed to reproduce manuscript results. They were us
 
 ## Reproducibility guide
 
-1. Clone the repository using `git clone https://github.com/kkraoj/lfmc_from_sar.git`
+1. Clone the repository using `git clone https://github.com/kkraoj/wildfire_from_lfmc.git`
 1. Change the directory addresses of `dir_data` and `dir_codes` in `dirs.py`
 1. Run any script from the [analysis](analysis) folder to reproduce the figures you wish
 
