@@ -330,7 +330,7 @@ if SAVEPLOT:
 
 
 #%% only 1 stacked bar per year
-fig, ax = plt.subplots(figsize =(3,1.5))
+fig, ax = plt.subplots(figsize =(3.5,1.5))
 
 ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = colors, legend = False, ax = ax, edgecolor = "k", linewidth = 0.7)
 
@@ -374,11 +374,12 @@ rects = ax.bar([0,1,2,3],y,align = "center",\
        color = ['grey']+colors,width = 0.7,edgecolor = "k",linewidth = 1)
     
 ax.set_xticks([0,1,2,3])
-ax.set_xticklabels(["All\nWUI","Low\ndanger","Medium\ndanger","High\ndanger"])
+ax.set_xticklabels(["All\nWUI","Low\nhazard","Medium\nhazard","High\nhazard"])
 ax.set_xlabel("")
 ax.set_title("% growth in WUI population", weight = "bold")
 ax.set_ylabel("% change in WUI population (1990-2010)")
 ax.set_ylim(90,170)
+ax.set_yticks([100,120,140,160])
 
 def autolabel(rects):
     """Attach a text label above each bar in *rects*, displaying its height."""

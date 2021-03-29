@@ -248,7 +248,7 @@ def segregate_fireClimate(areas):
                     (0.02,1.01),xycoords = "axes fraction",ha = "left", \
                         fontsize = 8, va = "top")
                 ax1.annotate(
-                    r"PWS$\in$[0, 0.3]"%slope,\
+                    r"PWS$\leq$0.3",\
                     (0.5,1.05),xycoords = "axes fraction",ha = "center", \
                         fontsize = 9 , weight = "bold")
                 
@@ -264,7 +264,7 @@ def segregate_fireClimate(areas):
                 ax2.annotate(r"$\rm \frac{d(BA)}{d(VPD)}\approx$700 km$^2$hPa$^{-1}$"%slope,\
                     (0.02,1.01),xycoords = "axes fraction",ha = "left", \
                         fontsize = 8, va = "top")
-                ax2.annotate(r"PWS$\in$[1.7, 2]"%slope,\
+                ax2.annotate(r"PWS$\geq$1.7",\
                     (0.5,1.05),xycoords = "axes fraction",ha = "center", \
                         fontsize = 9, weight = "bold")
                 
