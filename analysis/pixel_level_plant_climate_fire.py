@@ -192,6 +192,7 @@ def segregate_fireClimate(areas):
     r2 ,coefs, stderrors =[],[], []
     ctr = 0
     colors = ["#1565c0","#f2d600"]
+    colors = ["#006600","#ad1457"]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (3.6,1.6), sharey = True)
 
     for area in areas:
@@ -240,9 +241,7 @@ def segregate_fireClimate(areas):
                         line_kws = {"color":"k"}, ax =ax1)
                 ax1.set_ylim(0,4000)
                 ax1.set_xticks([21, 24, 27])
-                # ax1.annotate(r"$\rm \frac{d(BA)}{d(VPD)}\approx$350 km$^2$hPa$^{-1}$"%slope,\
-                #     (0.98,0.0),xycoords = "axes fraction",ha = "right", \
-                #         fontsize = 6, va = "bottom")
+  
                 ax1.annotate(
                     r"$\rm \frac{d(BA)}{d(VPD)}\approx$350 km$^2$hPa$^{-1}$"%slope,\
                     (0.02,1.01),xycoords = "axes fraction",ha = "left", \
@@ -505,45 +504,62 @@ cmap = ListedColormap(["#f2d600"])
 ax.imshow(np.where(areas[-15]==1, 1, np.nan), cmap = cmap)
 # ax.axis('off')
 
+#%% map of all 15 areas (not just 2)
+for i in range(areas.shape[0]):
+    area = areas[i]
+    fig, ax = plt.subplots(figsize = (5,5))
+    ax.imshow(area,cmap = "Greys")
+    ax.set_title(i)
+    ax.axis('off')
+    
+fig, ax = plt.subplots(figsize = (4.8,4.8),frameon=False)
+fig, ax, m, plot = plotmap(gt = gt, var = np.where(areas[0]==1, np.nan, np.nan),\
+                    map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, \
+                marker_factor = .1, 
+                      fill = "white",background="white",fig = fig,ax=ax,
+                      shapefilepath = 'D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
+                  shapefilename ='states')
+ax.axis('off')
+plt.tight_layout()
 
 #%% segregated plot
-ctr=0
-colors = ["seagreen","darkgoldenrod","limegreen"]
-fig, axs = plt.subplots(1, 3,figsize = (9,3), sharey = True)
-for quadrant in lc_dict.keys():
-    # x, y = bootstrap(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]])
+# ctr=0
+# colors = ["seagreen","darkgoldenrod","limegreen"]
+# fig, axs = plt.subplots(1, 3,figsize = (9,3), sharey = True)
+# for quadrant in lc_dict.keys():
+#     # x, y = bootstrap(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]])
     
-    x = df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
-    y = df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
-    print(quadrant)
-    slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-    print(r_value**2)
-    print(p_value)
-    sns.regplot(x = x, y = y,ax=axs[ctr], color = colors[ctr],scatter_kws={'s':0}, ci = 99.5)
-    axs[ctr].errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
-    axs[ctr].scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
+#     x = df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
+#     y = df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]]
+#     print(quadrant)
+#     slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+#     print(r_value**2)
+#     print(p_value)
+#     sns.regplot(x = x, y = y,ax=axs[ctr], color = colors[ctr],scatter_kws={'s':0}, ci = 99.5)
+#     axs[ctr].errorbar(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], yerr = stderrors[nEcoregions[ctr]:nEcoregions[ctr+1]], color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 2)
+#     axs[ctr].scatter(df.x.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], df.y.iloc[nEcoregions[ctr]:nEcoregions[ctr+1]], s = 50, edgecolor = "grey",label = quadrant, color = colors[ctr])
     
-    # ax.set_xlabel(r"%s, %s"%(var, hr))
-    # ax.set_xlabel(r"$\sum_{i=1}^5\frac{d(LFMC_t)}{d(DFMC_{t-i})}$")
-    axs[ctr].set_xlabel(r"Plant-water sensitivity (PWS)")
-    axs[ctr].set_ylabel("")
-    # ax.set_title(norm)
-    axs[ctr].set_xlim(0,2)
-    axs[ctr].legend()
+#     # ax.set_xlabel(r"%s, %s"%(var, hr))
+#     # ax.set_xlabel(r"$\sum_{i=1}^5\frac{d(LFMC_t)}{d(DFMC_{t-i})}$")
+#     axs[ctr].set_xlabel(r"Plant-water sensitivity (PWS)")
+#     axs[ctr].set_ylabel("")
+#     # ax.set_title(norm)
+#     axs[ctr].set_xlim(0,2)
+#     axs[ctr].legend()
     
     
-    # Hide the right and top spines
-    axs[ctr].spines['right'].set_visible(False)
-    axs[ctr].spines['top'].set_visible(False)
+#     # Hide the right and top spines
+#     axs[ctr].spines['right'].set_visible(False)
+#     axs[ctr].spines['top'].set_visible(False)
     
-    # Only show ticks on the left and bottom spines
-    # axs[ctr].yaxis.set_ticks_position('left')
-    # axs[ctr].xaxis.set_ticks_position('bottom')
+#     # Only show ticks on the left and bottom spines
+#     # axs[ctr].yaxis.set_ticks_position('left')
+#     # axs[ctr].xaxis.set_ticks_position('bottom')
 
-    ctr+=1
-axs[0].set_ylim(0,700)
-axs[0].set_ylabel(r"$\rm  \frac{d(Burned\ area)}{d(VPD)}$                ", fontsize = 16)
-fig.text(x = 0.045 ,y = 0.6, s = r'(km$^2$ hPa$^{-1}$)',rotation = 90)
+#     ctr+=1
+# axs[0].set_ylim(0,700)
+# axs[0].set_ylabel(r"$\rm  \frac{d(Burned\ area)}{d(VPD)}$                ", fontsize = 16)
+# fig.text(x = 0.045 ,y = 0.6, s = r'(km$^2$ hPa$^{-1}$)',rotation = 90)
 
 # # axs[ctr].legend(bbox_to_anchor=[1, 1],loc = "upper left")
     
@@ -802,3 +818,4 @@ plt.show()
 #%% plot landcover
 
 # plt.imshow(landcover)
+

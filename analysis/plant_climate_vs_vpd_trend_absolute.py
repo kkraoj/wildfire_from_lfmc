@@ -263,16 +263,18 @@ if SAVEPLOT:
 fig, ax = plt.subplots(figsize = (3,3),frameon = False)
 scatter_kwargs = dict(cmap = "PiYG_r",vmin = 0, vmax = 2,alpha = 1)
 ax.axis("off")
+
+plantClimate[plantClimate<1.9] = np.nan
 fig, _, m, plot = plotmap(gt = gt, var = plantClimate,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
                       fill = "white",background="white",fig = fig,ax=ax,
                       shapefilepath = 'D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
                   shapefilename ='states')
-risk = np.where((vpd>=0.05)&(plantClimate>=1.5), np.ones(plantClimate.shape), 0)
+# risk = np.where((vpd>=0.05)&(plantClimate>=1.5), np.ones(plantClimate.shape), 0)
 
-data = gaussian_filter(risk, sigma = 10,order = 0)
-fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
-                      fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = 0.1,contourColor = colorsPWS[-1],contourWidth = 2,
-                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+# data = gaussian_filter(risk, sigma = 10,order = 0)
+# fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
+                      # fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = 0.1,contourColor = colorsPWS[-1],contourWidth = 2,
+                      # shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 cax = fig.add_axes([0.7, 0.45, 0.03, 0.3])
     
 # cax.annotate('Plant  (%) \n', xy = (0.,0.94), ha = 'left', va = 'bottom', color = "w")
