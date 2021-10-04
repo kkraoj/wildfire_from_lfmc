@@ -31,6 +31,7 @@ from matplotlib.colors import ListedColormap
 from pingouin import partial_corr
 from scipy import stats
 from matplotlib.dates import DateFormatter, MonthLocator
+import scipy as sc
 
 
 sns.set(font_scale = 1., style = "ticks")
@@ -52,7 +53,7 @@ def get_dates(date, maxLag = 6):
     
     return subsetDates        
     
-def create_time_df(maxLag = 6, hr = "100hr", folder = "lfmc_dfmc_raw"):
+def create_time_df(maxLag = 6, folder = "lfmc_vpd_anomalies"):
     date = "2016-01-01"
     filename = os.path.join(dir_root, "data",folder,"lfmc_map_%s.tif"%date)
     ds = gdal.Open(filename)
@@ -67,11 +68,11 @@ def create_time_df(maxLag = 6, hr = "100hr", folder = "lfmc_dfmc_raw"):
         filename = os.path.join(dir_root, "data",folder,"lfmc_map_%s.tif"%date)
         ds = gdal.Open(filename)
         lfmc = np.array(ds.GetRasterBand(1).ReadAsArray())
-        dfmc = np.array(ds.GetRasterBand(dfmcDict[hr]).ReadAsArray())
+        dfmc = np.array(ds.GetRasterBand(2).ReadAsArray())
         # out_image[:,cluster_image[0,:,:]!=zone] = np.nan
         
         df['lfmc(t)'] = lfmc.flatten()
-        df['dfmc(t)'] = dfmc.flatten()
+        df['vpd(t)'] = dfmc.flatten()
         df['x_loc'] = x_loc.flatten()
         df['y_loc'] = y_loc.flatten()
         df['pixel_index'] = df.index
@@ -85,27 +86,62 @@ def create_time_df(maxLag = 6, hr = "100hr", folder = "lfmc_dfmc_raw"):
         for t in subsetDates:
             shiftedFile = os.path.join(dir_root, "data",folder,"lfmc_map_%s.tif"%t)
             ds = gdal.Open(shiftedFile)
-            df['dfmc(t-%d)'%ctr] = np.array(ds.GetRasterBand(dfmcDict[hr]).ReadAsArray()).flatten()
+            df['vpd(t-%d)'%ctr] = np.array(ds.GetRasterBand(2).ReadAsArray()).flatten()
             ctr+=1
         df.dropna(inplace = True)
         master = master.append(df,ignore_index = True) 
     master = master.dropna()
-    master.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d_%s"))
+    master.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,f"arr_pixels_time_wise_lag_{maxLag}_{norm}"))
     return master
     
 
+def pValue(reg, x, y):
+    
+    n, k = x.shape
+    yHat = np.matrix(reg.predict(x)).T
+
+    # Change X and Y into numpy matricies. x also has a column of ones added to it.
+    x = np.hstack((np.ones((n,1)),np.matrix(x)))
+    y = np.matrix(y).T
+
+    # Degrees of freedom.
+    df = float(n-k-1)
+
+    # Sample variance.     
+    sse = np.sum(np.square(yHat - y),axis=0)
+    sampleVariance = sse/df
+
+    # Sample variance for x.
+    sampleVarianceX = x.T*x
+
+    # Covariance Matrix = [(s^2)(X'X)^-1]^0.5. (sqrtm = matrix square root.  ugly)
+    covarianceMatrix = sc.linalg.sqrtm(sampleVariance[0,0]*sampleVarianceX.I)
+
+    # Standard erros for the difference coefficients: the diagonal elements of the covariance matrix.
+    se = covarianceMatrix.diagonal()[1:]
+
+    # T statistic for each beta.
+    betasTStat = np.zeros(len(se))
+    for i in range(len(se)):
+        betasTStat[i] = reg.coef_[i]/se[i]
+
+    # P-value for each beta. This is a two sided t-test, since the betas can be 
+    # positive or negative.
+    betasPValue = 1 - sc.stats.t.cdf(abs(betasTStat),df)
+    return np.min(betasPValue)
+        
 def regress(df,norm = "no_norm", coefs_type = "unrestricted"):            
-    cols = [col for col in df.columns if "dfmc" in col]        
+    cols = [col for col in df.columns if "vpd" in col]        
     X = df.loc[:,cols]
     y = df.iloc[:,0] ### 
     if norm=="lfmc_norm":
         y = (y-y.mean())/y.std()
-    elif norm=="dfmc_norm":
+    elif norm=="feature_norm":
         X = (X - X.mean())/X.std()
-    elif norm == "lfmc_dfmc_norm":
-        y = (y-y.mean())/y.std()
-        X = (X - X.mean())/X.std()
-    
+    elif norm == "both_norm":
+        y = (y-y.mean())/(y.std()+1e-5)
+        X = (X - X.mean())/(X.std()+1e-5)
+
     if coefs_type=="positive":
         reg = Lasso(alpha=0.0001,precompute=True,max_iter=1000,
                 positive=True, random_state=9999, selection='random').fit(X,y)
@@ -113,7 +149,6 @@ def regress(df,norm = "no_norm", coefs_type = "unrestricted"):
         reg = LinearRegression().fit(X, y)
     r2 = reg.score(X, y)
     coefs = [reg.intercept_]+list(reg.coef_)
-    
     p = pValue(reg, X, y)
 
     return r2, coefs, df['x_loc'].iloc[0],df['y_loc'].iloc[0], p    
@@ -171,28 +206,29 @@ for year in years:
 
 dates = dates[12:-11]
 
-hr = "100hr"
-folder = "lfmc_dfmc_anomalies"
+folder = "lfmc_vpd_anomalies"
 lag = 6
-norm = "lfmc_dfmc_norm"
+norm = "both_norm"
 coefs_type = "positive"
-# for hr in ["100hr","1000hr"]:
-# for i in range(4, 0, -1):
-# create_time_df(hr = hr, folder = folder, maxLag = lag)
 
-master = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"arr_pixels_time_wise_%s_lag_%d"%(hr,lag)))
+# create_time_df(folder = folder, maxLag = lag)
+
+master = pd.read_pickle(\
+        os.path.join(dir_root, "data","arr_pixels_%s"%folder,\
+                 f"arr_pixels_time_wise_lag_{lag}_{norm}"))
+
 master.date = pd.to_datetime(master.date)
-master = master.loc[(master.date.dt.month>=6)]
-master = master.groupby("pixel_index").filter(lambda df: df.shape[0] > 25)
+master = master.loc[(master.date.dt.month>=6)&(master.date.dt.month<=11)]
+master = master.groupby("pixel_index").filter(lambda x: len(x) > 25)
 
 
-
-# # # #########
+# # # # #########
 # print('\r')
 # print('[INFO] Regressing')
 # out = master.groupby('pixel_index').apply(regress,norm = norm, coefs_type = coefs_type)
-# out.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"plant_climate_regressed_%s_lag_%d_%s_%s"%(hr,lag,norm,coefs_type)))
-out = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"plant_climate_regressed_%s_lag_%d_%s_%s"%(hr,lag,norm, coefs_type)))
+# out.to_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_vpd_regressed_lag_%d_%s_%s"%(lag,norm,coefs_type)))
+
+out = pd.read_pickle(os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_vpd_regressed_lag_%d_%s_%s"%(lag,norm, coefs_type)))
   
 #%% p value
 if len(out.iloc[0])==5:
@@ -253,27 +289,7 @@ plantClimate[:,:] = np.nan
 plantClimate[y_loc, x_loc] = coefSum
 # plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
 
-savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefSum.tif"%(hr,lag,norm, coefs_type))
-# save_tif(plantClimate, geotransform, savepath)
-
-# plantClimate = ndvi.copy()
-# plantClimate[:,:] = np.nan
-# plantClimate[y_loc, x_loc] = coefPositiveSum
-# plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
-# savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_coefPositiveSum.tif"%(hr,lag,norm,coefs_type))
-# save_tif(plantClimate, geotransform, savepath)
-# 
-# plantClimate = ndvi.copy()
-# plantClimate[:,:] = np.nan
-# plantClimate[y_loc, x_loc] = coefMax
-# plantClimate = np.clip(plantClimate,np.nanquantile(plantClimate, q = 0.01),np.nanquantile(plantClimate, q = 0.99)) 
-# savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_coefMax.tif"%(hr,lag,norm))
-# save_tif(plantClimate, geotransform, savepath)
-
-# plantClimate = ndvi.copy()
-# plantClimate[:,:] = np.nan
-# plantClimate[y_loc, x_loc] = r2
-# savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_r2.tif"%(hr,lag,norm))
+savepath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_vpd_lag_%d_%s_%s_coefSum.tif"%(lag,norm, coefs_type))
 # save_tif(plantClimate, geotransform, savepath)
 
 
@@ -410,7 +426,7 @@ x,y = clean(vpd,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 print("R2 for PWS and VPD mean = %0.3f"%r_value**2)
 ax.set_xlabel("Mean VPD (hPa)")
-ax.set_ylabel(r'PWS')
+ax.set_ylabel(r'Plant-water sensitivity (PWS)')
 
 ################################
 # filename = os.path.join(dir_root, "data","mean","vpdMax.tif")
@@ -427,20 +443,7 @@ ax.set_ylabel(r'PWS')
 # ax.set_xlabel("Max VPD (hPa)")
 # ax.set_ylabel(r'Plant-water sensitivity (PWS)')
 
-################################
-filename = os.path.join(dir_root, "data","mean","ndvi_mean.tif")
-ds = gdal.Open(filename)
-vpd = np.array(ds.GetRasterBand(1).ReadAsArray())
 
-fig, ax = plt.subplots(figsize = (3,3))
-ax.scatter(vpd, plantClimate, alpha = 0.3, s = 0.001, color = "k")
-# ax.set_xlim(0,1)
-ax.set_ylim(0,2)
-x,y = clean(vpd,plantClimate)
-slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PWS and NDVI = %0.3f"%r_value**2)
-ax.set_xlabel("NDVI")
-ax.set_ylabel(r'PWS')
 
 ################################
 filename = os.path.join(dir_root, "data","mean","vpdStd.tif")
@@ -455,7 +458,7 @@ x,y = clean(vpd,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 print("R2 for PWS and VPD std = %0.3f"%r_value**2)
 ax.set_xlabel("VPD standard deviation (hPa)")
-ax.set_ylabel(r'PWS')
+ax.set_ylabel(r'Plant-water sensitivity (PWS)')
     
 
 ################################
@@ -471,26 +474,8 @@ x,y = clean(data,plantClimate)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 print("R2 for PWS and fire season length = %0.3f"%r_value**2)
 ax.set_xlabel("Dry season length (days)")
-ax.set_ylabel(r'PWS')
+ax.set_ylabel(r'Plant-water sensitivity (PWS)')
 ##fire season length calculated as number of days in a year when VPD > long term mean for that pixel")
-
-
-################################
-filename = os.path.join(dir_root, "data","mean","fireSeasonLength.tif")
-ds = gdal.Open(filename)
-data = np.array(ds.GetRasterBand(1).ReadAsArray())/1000
-
-fig, ax = plt.subplots(figsize = (3,3))
-ax.scatter(data, plantClimate, alpha = 0.3, s = 0.001, color = "k")
-# ax.set_xlim(0,1)
-ax.set_ylim(0,2)
-x,y = clean(data,plantClimate)
-slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
-print("R2 for PWS and dry season NDVI = %0.3f"%r_value**2)
-ax.set_xlabel("Dry season NDVI")
-ax.set_ylabel(r'PWS')
-##fire season length calculated as number of days in a year when VPD > long term mean for that pixel")
-
 
 ###############################################################################
 
@@ -678,7 +663,7 @@ for ind_ in [6]:
    
     ax2.set_xticks([-5,0,5])
     ax2.set_yticks([-20,-10,0,10,20])
-fig.text(x = 0.5 ,y = -0.07, s = r'Climate-derived moisture balance anomaly', ha ="center",va="top")
+fig.text(x = 0.5 ,y = -0.07, s = r'Climate-derived fuel moisture anomaly', ha ="center",va="top")
 # plt.tight_layout()
 plt.show()
 

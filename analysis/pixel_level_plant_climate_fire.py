@@ -90,13 +90,24 @@ def histedges_equalN(x, nbin):
                      np.arange(npt),
                      np.sort(x))
 
-def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", localize = False, ecoregionalize = False, landcoverize = False, pptize = False):
+def segregate_plantClimate(plantClimatePath, n = 20, binning = "equal_area", 
+                           localize = False, ecoregionalize = False, 
+                           landcoverize = False, pptize = False,
+                           control_for_vegetation = True):
     ds = gdal.Open(plantClimatePath)
     plantClimateMap = np.array(ds.GetRasterBand(1).ReadAsArray())
     ##FOR R2 MAP ONLY. Delete Otherwise
     # plantClimateMap[plantClimateMap<0] = np.nan
     plantClimate_seg, areas, nEcoregions = [],[], [0]
-    
+            
+    if control_for_vegetation:
+        ds = gdal.Open(r"D:\Krishna\projects\wildfire_from_lfmc\data\mean\landcover.tif")
+        lcMap = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
+
+        mask = np.ones_like(lcMap, int)
+        mask[lcMap>180]=0
+        plantClimateMap[mask==0] = np.nan
+            
     if binning == "equal_width":
         minVal , maxVal = np.nanmin(plantClimateMap), np.nanmax(plantClimateMap)
         bounds = np.linspace(minVal, maxVal, n+1)
@@ -219,6 +230,96 @@ def segregate_fireClimate(areas):
             coefs.append(slope)
             stderrors.append(std_err)
             print(p_value)
+            
+            # fig_, ax_ =plt.subplots(figsize = (2,2))
+            
+            # ax_.set_ylabel("Burned area (km$^2$)")
+            # ax_.set_xlim(21, 27) ## should be before plotting
+            # sns.regplot(vpd, ba, color = "k", truncate = False,\
+            #             scatter_kws ={'s':30,"edgecolor":"grey"},\
+            #         line_kws = {"color":"k"}, ax =ax_)
+            # ax_.set_ylim(0,4000)
+            # ax_.set_xticks([21, 24, 27])
+            # ax_.set_xlabel("VPD (hPa)")
+                
+            if ctr==0:
+                # ax1.set_xlabel("VPD (hPa)")
+                
+                ax1.set_ylabel("Burned area (km$^2$)")
+                ax1.set_xlim(21, 27) ## should be before plotting
+                sns.regplot(vpd, ba, color = colors[0], truncate = False,\
+                            scatter_kws ={'s':30,"edgecolor":"grey"},\
+                        line_kws = {"color":"k"}, ax =ax1)
+                ax1.set_ylim(0,4000)
+                ax1.set_xticks([21, 24, 27])
+  
+                ax1.annotate(
+                    r"$\rm \frac{d(BA)}{d(VPD)}\approx$350 km$^2$hPa$^{-1}$"%slope,\
+                    (0.02,1.01),xycoords = "axes fraction",ha = "left", \
+                        fontsize = 8, va = "top")
+                ax1.annotate(
+                    r"PWS$\leq$0.3",\
+                    (0.5,1.05),xycoords = "axes fraction",ha = "center", \
+                        fontsize = 9 , weight = "bold")
+                
+            elif ctr==14:
+                # ax2.set_xlabel("VPD (hPa)")
+                ax2.set_ylabel("")
+                ax2.set_xlim(21, 27) ## should be before plotting
+                sns.regplot(vpd, ba, color = colors[1], truncate = False,\
+                            scatter_kws ={'s':30,"edgecolor":"grey"},\
+                        line_kws = {"color":"k"}, ax =ax2)
+                # ax.set_ylim(0,3000)
+                ax2.set_xticks([21, 24, 27])
+                ax2.annotate(r"$\rm \frac{d(BA)}{d(VPD)}\approx$700 km$^2$hPa$^{-1}$"%slope,\
+                    (0.02,1.01),xycoords = "axes fraction",ha = "left", \
+                        fontsize = 8, va = "top")
+                ax2.annotate(r"PWS$\geq$1.7",\
+                    (0.5,1.05),xycoords = "axes fraction",ha = "center", \
+                        fontsize = 9, weight = "bold")
+                
+        ctr+=1
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    fig.text(x = 0.5 ,y = -0.07, s = r'Vapor pressure deficit (VPD) (hPa)', ha ="center",va="top")
+
+    plt.show()
+
+    return np.array(r2),np.array(coefs), np.array(stderrors)
+
+def segregate_fireClimate_normalizedbyBA(areas):
+    r2 ,coefs, stderrors =[],[], []
+    ctr = 0
+    colors = ["#1565c0","#f2d600"]
+    colors = ["#006600","#ad1457"]
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (3.6,1.6), sharey = True)
+
+    for area in areas:
+        ba, vpd = [],[]
+        for i in range(19):
+            filename = os.path.join(dir_root, "data","ba_vpd","%d.tif"%i)
+            ds = gdal.Open(filename)
+            ba_ = np.nansum((np.array(ds.GetRasterBand(2).ReadAsArray())>0).astype(int)[area==True])*16 #km sq.
+            ba.append(ba_)
+            vpd.append(np.nanmean(np.array(ds.GetRasterBand(1).ReadAsArray())[area==True]))
+        
+        ba = np.array(ba)
+        ba = ba/(np.mean(ba)+1e-4)
+        vpd = np.array(vpd)
+        ba, vpd = clean(ba, vpd)
+        
+        if len(ba)<=8:
+            r2.append(np.nan)
+            coefs.append(np.nan)
+        else:
+            # ba = np.log10(ba)
+           
+            slope, intercept, r_value, p_value, std_err = stats.linregress(vpd,ba)
+            r2.append(r_value**2)
+            coefs.append(slope)
+            stderrors.append(std_err)
             
             # fig_, ax_ =plt.subplots(figsize = (2,2))
             
@@ -421,12 +522,14 @@ nGlobal = nLocal*len(ecoregions_dict)
     # for var in ["coefSum","coefPositiveSum","coefAbsSum","r2"]    :
 plantClimatePath = os.path.join(dir_root, "data","arr_pixels_%s"%folder,"lfmc_dfmc_%s_lag_%d_%s_%s_%s.tif"%(hr,lag,norm,coefs_type,var))
 # plantClimatePath = os.path.join(dir_root, "data","mean","vpd_mean.tif")
+ndviPath = os.path.join(dir_root, "data","mean","ndvi_mean.tif")
 
 plantClimate_seg,areas, nEcoregions = segregate_plantClimate(plantClimatePath, n = nLocal, \
                                     binning = "equal_area", localize = False,\
                                 ecoregionalize = False, landcoverize = False,\
                                     pptize = False)
 r2,coefs, stderrors = segregate_fireClimate(areas)
+_,coefs2, stderrors2 = segregate_fireClimate_normalizedbyBA(areas)
 
 df = pd.DataFrame({"x":plantClimate_seg,"y":coefs})
 # np.save(os.path.join(dir_root, "data","pws_bins","PWS_bin_1.npy"), areas[0])
@@ -467,6 +570,36 @@ def bootstrap(x, y, yerr, samples = 100):
     xboot = np.repeat(x, samples)
     
     return np.array(xboot), yboot
+
+#%% BA_normalized/VPD vs PWS
+
+
+slope, intercept, r_value, p_value, std_err = stats.linregress(plantClimate_seg,coefs2)
+print(p_value)
+
+fig, ax = plt.subplots(figsize = (4,4))
+ax.set_xlim(0,2)
+# ax.set_ylim(200,900)
+sns.regplot(x=plantClimate_seg, y=coefs2,ax=ax, ci = 99.5, color = "grey", seed = 0)
+
+ax.errorbar(plantClimate_seg, coefs2, yerr = stderrors2, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 1,capsize = 3)
+ax.scatter(plantClimate_seg, coefs2, s = 80, color = "k", edgecolor = "grey")
+# ax.scatter(plantClimate_seg[0], coefs[0], s = 80, color = "#1565c0", edgecolor = "grey")
+# ax.scatter(plantClimate_seg[-1], coefs[-1], s = 80, color = "#f2d600", edgecolor = "grey")
+
+    
+ax.set_xlabel(r"Plant-water sensitivity (PWS)")
+ax.set_ylabel(r"$\rm  \frac{d(Burned\ area_{norm})}{d(VPD)\times}$                    ", fontsize = 16)
+fig.text(x = -0.05 ,y = 0.56, s = r'(hPa$^{-1}$)',rotation = 90)
+# ax.set_ylim(100,900)
+# ax.yaxis.set_major_locator(MultipleLocator(200))
+# ax.set_yticks(np.linspace(100,900,5))
+ax.annotate("R$^2$=%0.2f\n$p$<0.0001"%(r_value**2),xycoords = "axes fraction",ha = "left", va = "top",xy =(0.1,0.9))
+
+# Hide the right and top spines
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+plt.show()
 
 #%% map of areas
 
@@ -680,8 +813,9 @@ plt.axis('off')
 ds = gdal.Open(r"D:\Krishna\projects\wildfire_from_lfmc\data\mean\landcover.tif")
 lcMap = np.array(ds.GetRasterBand(1).ReadAsArray()).astype(float)
 
-mask = np.ones_like(lcMap, np.bool)
-mask[np.isin(lcMap, list(lc_dict.keys()))] = 0
+mask = np.ones_like(lcMap, int)
+mask[np.isin(lcMap, 
+    [item for sublist in list(lc_dict.values()) for item in sublist])] = 0
 lcMap[mask] = np.nan
 
 lcQuadrant = ecoregionalizeUSA(lcMap, area = 8)
