@@ -30,7 +30,7 @@ import squarify
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
                                AutoMinorLocator)
 
-SAVEPLOT = True
+SAVEPLOT = False
 
 def subset_CA(wui):
     wuiCA = wui[200:450,:300]
@@ -168,8 +168,8 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI","wui pop rise bar plot absolute.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI","wui pop rise bar plot absolute.eps"), format = "eps")
 
 
 #%% bar chart with quantiles y axis normalized by total WUI expansion
@@ -187,8 +187,8 @@ ax.set_xlabel("Risk")
 ax.set_ylabel("% WUI population rise\n(wrt to total WUI pop. rise)")
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative.eps"), format = "eps")
 
 
 #%% bar chart with quantiles y axis normalized by 1990 population
@@ -206,8 +206,8 @@ ax.set_xlabel("Risk")
 ax.set_ylabel("% WUI population rise\n(wrt to 1990 population)")
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative wrt 1990.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative wrt 1990.eps"), format = "eps")
 
 
 #%% time series of WUI pop growth
@@ -272,8 +272,8 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI timeseries normalized.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI", "WUI timeseries normalized.eps"), format = "eps")
 
 
 
@@ -294,8 +294,8 @@ ax.set_xticklabels(["Low","Medium","High"])
 ax.set_xlabel("Risk")
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot absolute stacked.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot absolute stacked.eps"), format = "eps")
 
 
 #%% before after total WUI pop plots
@@ -325,12 +325,12 @@ ax.set_xticklabels(["Low","Medium","High"])
 ax.set_xlabel("Risk")
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise before after bar plot stacked.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise before after bar plot stacked.eps"), format = "eps")
 
 
 #%% only 1 stacked bar per year
-fig, ax = plt.subplots(figsize =(3.5,1.5))
+fig, ax = plt.subplots(figsize =(88/25.4,1.5))
 
 ts.sort_index(ascending = False).plot(kind = "barh", stacked = True, color = colors, legend = False, ax = ax, edgecolor = "k", linewidth = 0.7)
 
@@ -348,8 +348,7 @@ ax.spines['top'].set_visible(False)
 
 plt.tight_layout()
 if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop stacked 1 bar absolute.eps"), format = "eps")
-
+    fig.savefig(os.path.join(r"C:\Users\kkrao\Dropbox\meetingsKrishna\Figures\wildfire_from_lfmc\fig4a.eps"), format = "eps")
 
 #%% only 1 bar proportionaized to 100
 fig, ax = plt.subplots(figsize =(3.5,1.5))
@@ -358,8 +357,8 @@ fig, ax = plt.subplots(figsize =(3.5,1.5))
 ax.set_xlabel("% WUI population")
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop stacked 1 bar relative.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop stacked 1 bar relative.eps"), format = "eps")
 
 
 #%% 4 bars starting with shortened y axis
@@ -404,8 +403,8 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 
 plt.tight_layout()
-if SAVEPLOT:
-    fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative wrt 1990 4 bars.eps"), format = "eps")
+# if SAVEPLOT:
+#     fig.savefig(os.path.join(dir_fig, "WUI", "WUI pop rise bar plot relative wrt 1990 4 bars.eps"), format = "eps")
 
 
 
@@ -465,3 +464,29 @@ fig, ax, m, plot = plotmap(gt = gt, var = np.where(wuiDiff>0, wui2010, np.nan),m
                      fill = "white",background="white",fig=fig, ax=ax,
                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 
+
+#%%  reviewers request of dBA/dVPD %/hPA vs. WUI delta
+
+fig, ax = plt.subplots(figsize = (88/25.4,88/25.4))
+x = [108, 107 , 95, 160] # with all
+y = [124, 95, 107, 170]
+yerr = [29, 22, 24, 37]
+ax.set_xlim(85,170)
+ax.set_ylim(65,210)
+
+# x = [107 , 95, 160]
+# y = [95, 107, 170]
+# yerr = [22, 24, 37]
+ax.errorbar(x, y, yerr = yerr, color = "lightgrey", zorder = -1, linewidth = 0, elinewidth = 1,capsize = 3)
+ax.scatter(x, y, s = 80, c =["grey","#f1d4d4","#e6739f","#cc0e74"], edgecolor = "grey")
+ax.set_xlabel(r"% growth in WUI population")
+ax.set_ylabel(r"$\rm \frac{d(Burned\ area)}{d(VPD)}$ (%/hPa)")
+ax.set_title(r"Relative $\rm \frac{dBA}{dVPD}$ and $\Delta$ WUI population", weight = "bold")
+
+# Hide the right and top spines
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+
+plt.tight_layout()
+if SAVEPLOT:
+    fig.savefig(os.path.join(r"C:\Users\kkrao\Dropbox\meetingsKrishna\Figures\wildfire_from_lfmc\fig4b.eps"), format = "eps")

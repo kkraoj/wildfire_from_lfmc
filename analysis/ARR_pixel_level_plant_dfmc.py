@@ -622,7 +622,7 @@ master = master.rename(columns = {"dfmc(t)":"dfmc(t-0)"})
 
 nbins = 2
 
-fig, (ax2, ax1) = plt.subplots(1, 2, figsize = (3.6,1.6), sharey = True)
+fig, (ax2, ax1) = plt.subplots(1, 2, figsize = (88/25.4,48/25.4), sharey = True)
 ax1.spines['right'].set_visible(False)
 ax1.spines['top'].set_visible(False)
 ax2.spines['right'].set_visible(False)
@@ -642,7 +642,7 @@ for ind_ in [60]:
 
             pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
             # ax1.set_title('Sample pixel PWS=%0.2f'%pws, fontsize = 8)
-            ax1.annotate('Sample pixel PWS=%0.2f'%pws, fontsize = 9, 
+            ax1.annotate('Pixel PWS=%0.2f'%pws,
             xy=(0.5, 1.1), ha = "center",textcoords='axes fraction', weight = "bold")
             ax1.set_xlabel("")
             ax1.set_ylabel("")
@@ -669,17 +669,20 @@ for ind_ in [6]:
             mctr+=1
     pws =subDf.drop(["r2","x_loc","y_loc","pixel_index","coefSum"],axis = 1).sum(axis =1).iloc[0]
     # ax2.set_title('Sample pixel PWS=%0.2f'%pws)
-    ax2.annotate('Sample pixel PWS=%0.2f'%pws, fontsize = 9, 
+    ax2.annotate('Pixel PWS=%0.2f'%pws, 
             xy=(0.5, 1.1), ha = "center",textcoords='axes fraction', weight = "bold")
     ax2.set_xlabel("")
-    ax2.set_ylabel("LFMC anomaly")
+    ax2.set_ylabel("LFMC anomaly (%)")
 
     ax2.set_title("")
    
     ax2.set_xticks([-5,0,5])
     ax2.set_yticks([-20,-10,0,10,20])
-fig.text(x = 0.5 ,y = -0.07, s = r'Climate-derived moisture balance anomaly', ha ="center",va="top")
-# plt.tight_layout()
+fig.text(x = 0.57 ,y = 0.1, s = 'Climate-derived moisture\nbalance anomaly (%)', ha ="center",va="top")
+plt.tight_layout()
+plt.subplots_adjust(wspace=0.2)
+
+plt.savefig(r"C:/Users/kkrao/Dropbox/meetingsKrishna/Figures/wildfire_from_lfmc/fig1b.pdf", bbox_inches = "tight")
 plt.show()
 
 # lowBin = np.load(os.path.join(dir_root, "data","pws_bins","PWS_bin_1.npy"))
@@ -754,99 +757,99 @@ plt.show()
 # Last bin of PWS =1.58814322 2.06
 
 #%% time series of LFMC and DFMC for low and high PWS pixels
-sns.set(style = "ticks",font_scale = 1)
+# sns.set(style = "ticks",font_scale = 1)
 
-##lfmc Raw calculated by running specific lines of create_time df function above
+# ##lfmc Raw calculated by running specific lines of create_time df function above
 
-date = "2016-01-01"
-filename = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%date)
-ds = gdal.Open(filename)
-array = np.array(ds.GetRasterBand(1).ReadAsArray())
+# date = "2016-01-01"
+# filename = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%date)
+# ds = gdal.Open(filename)
+# array = np.array(ds.GetRasterBand(1).ReadAsArray())
 
-x_loc, y_loc = np.meshgrid(range(array.shape[1]),range(array.shape[0]) )
+# x_loc, y_loc = np.meshgrid(range(array.shape[1]),range(array.shape[0]) )
 
-lfmcRaw = pd.DataFrame()
-for date in dates:
-    dff = pd.DataFrame()
-    filename = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%date)
-    ds = gdal.Open(filename)
-    lfmc = np.array(ds.GetRasterBand(1).ReadAsArray())
+# lfmcRaw = pd.DataFrame()
+# for date in dates:
+#     dff = pd.DataFrame()
+#     filename = os.path.join(dir_root, "data","lfmc_dfmc_raw","lfmc_map_%s.tif"%date)
+#     ds = gdal.Open(filename)
+#     lfmc = np.array(ds.GetRasterBand(1).ReadAsArray())
     
-    dff['lfmc(t)'] = lfmc.flatten()
-    dff['x_loc'] = x_loc.flatten()
-    dff['y_loc'] = y_loc.flatten()
-    dff['pixel_index'] = dff.index
+#     dff['lfmc(t)'] = lfmc.flatten()
+#     dff['x_loc'] = x_loc.flatten()
+#     dff['y_loc'] = y_loc.flatten()
+#     dff['pixel_index'] = dff.index
     
-    dff['date'] = date
-    sys.stdout.write('\r'+'[INFO] Time step %s'%date)
-    sys.stdout.flush()
-    dff.dropna(inplace = True)
-    lfmcRaw = lfmcRaw.append(dff,ignore_index = True) 
-lfmcRaw = lfmcRaw.dropna()
-lfmcRaw = lfmcRaw.rename(columns = {"lfmc(t)":'lfmc_raw'})
+#     dff['date'] = date
+#     sys.stdout.write('\r'+'[INFO] Time step %s'%date)
+#     sys.stdout.flush()
+#     dff.dropna(inplace = True)
+#     lfmcRaw = lfmcRaw.append(dff,ignore_index = True) 
+# lfmcRaw = lfmcRaw.dropna()
+# lfmcRaw = lfmcRaw.rename(columns = {"lfmc(t)":'lfmc_raw'})
 
-highPWS = df.loc[df.coefSum>=1.9,'pixel_index'].values
-lowPWS = df.loc[df.coefSum<=0.2,'pixel_index'].values
+# highPWS = df.loc[df.coefSum>=1.9,'pixel_index'].values
+# lowPWS = df.loc[df.coefSum<=0.2,'pixel_index'].values
 
-# for pixel in [328,432]: ##high, low
-for pixel in highPWS: ##high, low
-    data = master.loc[master.pixel_index==pixel,['date','lfmc(t)','dfmc(t-0)']].copy()
-    data.index = data.date
+# # for pixel in [328,432]: ##high, low
+# for pixel in highPWS: ##high, low
+#     data = master.loc[master.pixel_index==pixel,['date','lfmc(t)','dfmc(t-0)']].copy()
+#     data.index = data.date
 
-    lfmcRawSubset = lfmcRaw.loc[lfmcRaw.pixel_index==pixel,['date','lfmc_raw']].copy()
-    lfmcRawSubset.index = lfmcRawSubset.date
-    lfmcRawSubset.drop("date",axis = 1,inplace = True)
+#     lfmcRawSubset = lfmcRaw.loc[lfmcRaw.pixel_index==pixel,['date','lfmc_raw']].copy()
+#     lfmcRawSubset.index = lfmcRawSubset.date
+#     lfmcRawSubset.drop("date",axis = 1,inplace = True)
 
-    data = data.join(lfmcRawSubset)
+#     data = data.join(lfmcRawSubset)
     
-    fig, ax2 = plt.subplots(1,1,figsize = (5,2.5))
-    fig, ax1 = plt.subplots(1,1,figsize = (5,2.5))
-    fig, ax3 = plt.subplots(1,1,figsize = (5,2.5))
+#     fig, ax2 = plt.subplots(1,1,figsize = (5,2.5))
+#     fig, ax1 = plt.subplots(1,1,figsize = (5,2.5))
+#     fig, ax3 = plt.subplots(1,1,figsize = (5,2.5))
     
-    data['lfmc(t)'].plot(ax=ax1,marker = "o",linewidth = 1,markersize = 5,rot=0)
-    data['dfmc(t-0)'].plot(ax=ax2,color = "k",marker = "o",linewidth = 1,markersize = 5,rot=0)
-    data['lfmc_raw'].plot(ax=ax3,color = "C1",marker = "o",linewidth = 1,markersize = 5,rot=0)
+#     data['lfmc(t)'].plot(ax=ax1,marker = "o",linewidth = 1,markersize = 5,rot=0)
+#     data['dfmc(t-0)'].plot(ax=ax2,color = "k",marker = "o",linewidth = 1,markersize = 5,rot=0)
+#     data['lfmc_raw'].plot(ax=ax3,color = "C1",marker = "o",linewidth = 1,markersize = 5,rot=0)
 
-    # ax2.plot(dfmc)
-    ax1.set_ylabel("LFMC\nanomaly (%)")
-    ax2.set_ylabel("Climate\nanomaly (%)")
-    ax3.set_ylabel("LFMC (%)")
+#     # ax2.plot(dfmc)
+#     ax1.set_ylabel("LFMC\nanomaly (%)")
+#     ax2.set_ylabel("Climate\nanomaly (%)")
+#     ax3.set_ylabel("LFMC (%)")
     
-    ax1.set_ylim(-50,60)
-    ax3.set_ylim(0,210)
-    ax2.set_ylim(-10,10)
+#     ax1.set_ylim(-50,60)
+#     ax3.set_ylim(0,210)
+#     ax2.set_ylim(-10,10)
 
-    ax1.axhline(color = "grey",linewidth = 0.5)
-    ax2.axhline(color = "grey",linewidth = 0.5)
+#     ax1.axhline(color = "grey",linewidth = 0.5)
+#     ax2.axhline(color = "grey",linewidth = 0.5)
     
-    # Hide the right and top spines
-    ax2.spines['right'].set_visible(False)
-    ax2.spines['top'].set_visible(False)
+#     # Hide the right and top spines
+#     ax2.spines['right'].set_visible(False)
+#     ax2.spines['top'].set_visible(False)
     
-    # Hide the right and top spines
-    ax1.spines['right'].set_visible(False)
-    ax1.spines['top'].set_visible(False)
+#     # Hide the right and top spines
+#     ax1.spines['right'].set_visible(False)
+#     ax1.spines['top'].set_visible(False)
 
-    # Hide the right and top spines
-    ax3.spines['right'].set_visible(False)
-    ax3.spines['top'].set_visible(False)
+#     # Hide the right and top spines
+#     ax3.spines['right'].set_visible(False)
+#     ax3.spines['top'].set_visible(False)
     
-    ax1.set_xlabel("")
-    ax2.set_xlabel("")
-    ax3.set_xlabel("")
+#     ax1.set_xlabel("")
+#     ax2.set_xlabel("")
+#     ax3.set_xlabel("")
     
-    date_form = DateFormatter("%b\n%Y")
-    ax1.xaxis.set_major_formatter(date_form)
-    ax1.xaxis.set_major_locator(MonthLocator(interval=6))
+#     date_form = DateFormatter("%b\n%Y")
+#     ax1.xaxis.set_major_formatter(date_form)
+#     ax1.xaxis.set_major_locator(MonthLocator(interval=6))
     
-    ax2.xaxis.set_major_formatter(date_form)
-    ax2.xaxis.set_major_locator(MonthLocator(interval=6))
+#     ax2.xaxis.set_major_formatter(date_form)
+#     ax2.xaxis.set_major_locator(MonthLocator(interval=6))
     
-    ax3.xaxis.set_major_formatter(date_form)
-    ax3.xaxis.set_major_locator(MonthLocator(interval=6))
-    ax2.set_title(pixel)
+#     ax3.xaxis.set_major_formatter(date_form)
+#     ax3.xaxis.set_major_locator(MonthLocator(interval=6))
+#     ax2.set_title(pixel)
 
-    plt.minorticks_off()
+#     plt.minorticks_off()
 
-    plt.show()
+#     plt.show()
     
