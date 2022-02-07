@@ -464,6 +464,12 @@ fig, ax, m, plot = plotmap(gt = gt, var = np.where(wuiDiff>0, wui2010, np.nan),m
                      fill = "white",background="white",fig=fig, ax=ax,
                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 
+fig, ax = plt.subplots(figsize=(3,3))
+fig, ax, m, plot = plotmap(gt = gt, var = np.where((wuiDiff>0)*(plantClimate>1.5), wui2010, np.nan),map_kwargs=map_kwargs \
+                           ,scatter_kwargs=scatter_kwargs, marker_factor = 0.5, 
+                     fill = "white",background="white",fig=fig, ax=ax,
+                      shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+
 
 #%%  reviewers request of dBA/dVPD %/hPA vs. WUI delta
 
