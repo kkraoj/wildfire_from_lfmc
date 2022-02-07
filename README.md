@@ -1,37 +1,10 @@
-# Plant-water sensitivity regulates wildfire vulnerability
+# How to calculate plant-water sensitivity?
 
-This repository contains GeoTiff map of plant-water sentivity and scripts required to replicate figures from my manuscript
+1. Run `export_lfmc_dfmc_maps.py` to export images to your google drive. Each image is a 15-day aggregate. All images available until today will be exported.
+Each image has two bands: first band is LFMC, and second band is DFMC.
+1. You can monitor export status at https://code.earthengine.google.com/tasks
+1. Once all images are downloaded (will typically take 4 hours), go to your google drive folder. Right click and download. This will download a zipped version of all the maps.
+1. Extract the zipped version to any folder of your choice. 
+1. Change `data_dir` in `pws_calculation.py` to point to the parent directory where the directory with all maps exists.
+1. Run `pws_calculation.py`
 
-## Maps
-
-The [maps](maps) folder contains the following maps:
-1. Plant-water sensitivity representative of the period 2016 - 2020
-1. Vapor pressure deficit trend in hPa/year from PRISM for the period 1980-2020
-1. Wildland-urban interface for 1990 and 2010
-1. Population density in 1990 and 2010
-
-All maps are for the western US at 4 km resolution.
-
-## Scripts:
-The repository consists of scripts in the [analysis](analysis) folder to reproduce figures from the main manuscript. Before running any script, please ensure all [maps](maps) are downloaded. 
-
-1. Run pixel_level_plant_climate_fire.py to reproduce the relationship between plant-water sensitivity and wildfire vulnerability (Fig. 1)
-1. Run plant_climate_vs_vpd_trend_absolute.py to reproduce the relationship between plant-water sensitivity and trend in vapor pressure deficit (Fig. 2)
-1. Run pop+wui_simplified_landsat_3cats.py to reproduce the growth in WUI population in different plant-water sensitivity zones (Fig. 3)
-
-Rest of the scripts are not needed to reproduce manuscript results. They were used for development of the model and preliminary investigation only.
-
-## Reproducibility guide
-
-1. Clone the repository using `git clone https://github.com/kkraoj/wildfire_from_lfmc.git`
-1. Change the directory addresses of `dir_data` and `dir_codes` in `dirs.py`
-1. Run any script from the [analysis](analysis) folder to reproduce the figures you wish
-
-## License
-All scripts and data are available with CC/BY/4.0 license. Please cite my paper if you use any thing from this repo.
-
-Citation: Rao, K., Williams, A.P., Diffenbaugh, N.S. et al. Plant-water sensitivity regulates wildfire vulnerability. Nat Ecol Evol (2022). https://doi.org/10.1038/s41559-021-01654-2.
-
-## Issues?
-
-Check the `Issues` tab for troubleshooting or create a new issue.
