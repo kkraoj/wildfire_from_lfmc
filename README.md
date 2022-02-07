@@ -28,7 +28,9 @@ Rest of the scripts are not needed to reproduce manuscript results. They were us
 1. Run any script from the [analysis](analysis) folder to reproduce the figures you wish
 
 ## License
-Data and scripts presented here are subject to change. Please do not use it until my manuscript's review is completed. Once the manuscript is approved, this section will be changed to reflect the lincense status.
+All scripts and data are available with CC/BY/4.0 license. Please cite my paper if you use any thing from this repo.
+
+Citation: Rao, K., Williams, A.P., Diffenbaugh, N.S. et al. Plant-water sensitivity regulates wildfire vulnerability. Nat Ecol Evol (2022). https://doi.org/10.1038/s41559-021-01654-2.
 
 ## Issues?
 
