@@ -23,7 +23,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.patches as patches
 
-SAVEPLOT = True
+SAVEPLOT = False
 sns.set(font_scale = 1., style = "ticks")
 plt.style.use("pnas")
 
@@ -280,7 +280,7 @@ fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs
                        shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
 cax = fig.add_axes([0.7, 0.45, 0.03, 0.3])
     
-# cax.annotate('Plant  (%) \n', xy = (0.,0.94), ha = 'left', va = 'bottom', color = "w")
+cax.annotate('Plant-water\nsensitivity \n', xy = (0.,0.94), ha = 'left', va = 'bottom', color = "w")
 cb0 = fig.colorbar(plot,ax=ax,cax=cax,ticks = np.linspace(0,2,5))
 plt.tight_layout()
 ax.axis("off")
@@ -290,10 +290,71 @@ ax.axis("off")
 if SAVEPLOT:
     # fig.savefig(os.path.join(dir_fig, "PWS map.tiff"), format = "tiff", dpi = 300)
     fig.savefig(r"C:/Users/kkrao/Dropbox/meetingsKrishna/Figures/wildfire_from_lfmc/fig3b.tiff",dpi =300)
+    # fig.savefig(r"C:/Users/kkrao/Dropbox/meetingsKrishna/Figures/wildfire_from_lfmc/PWS_high_res.jpg",dpi =300)
+    
+plt.show()
+
+#%% plant climate map ABC news
+sns.set(font_scale = 2, style = "ticks")
+fig, ax = plt.subplots(figsize = (10,10),frameon = False)
+scatter_kwargs = dict(cmap = "PiYG_r",vmin = 0, vmax = 2,alpha = 1)
+ax.axis("off")
+
+# plantClimate[plantClimate<1.9] = np.nan
+fig, _, m, plot = plotmap(gt = gt, var = plantClimate,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 1, 
+                      fill = "white",background="white",fig = fig,ax=ax,
+                      shapefilepath = 'D:/Krishna/projects/vwc_from_radar/data/usa_shapefile/west_usa/cb_2017_us_state_500k', 
+                  shapefilename ='states')
+risk = np.where((vpd>=0.05)&(plantClimate>=1.5), np.ones(plantClimate.shape), 0)
+
+data = gaussian_filter(risk, sigma = 10,order = 0)
+fig, _, m, _ = plotmap(gt = gt, var = data,map_kwargs=map_kwargs ,scatter_kwargs=scatter_kwargs, marker_factor = 4, 
+                       fill = "white",background="white",fig=fig, ax=ax,contour = True,contourLevel = 0.1,contourColor = colorsPWS[-1],contourWidth = 4,
+                       shapefilewidth = 2,drawcounties = True, \
+                       shapefilepath = r"D:\Krishna\projects\vwc_from_radar\data\usa_shapefile\west_usa\cb_2017_us_state_500k",shapefilename ='states')
+cax = fig.add_axes([0.7, 0.45, 0.03, 0.3])
+    
+cax.annotate('Plant-water\nsensitivity', xy = (0.,1.08), ha = 'left', \
+             va = 'bottom', color = "k", xycoords = "axes fraction")
+cb0 = fig.colorbar(plot,ax=ax,cax=cax,ticks = np.linspace(0,2,5))
+plt.tight_layout()
+ax.axis("off")
+# plt.savefig(os.path.join(dir_fig, "pws_with_contour.jpg"), dpi=300, facecolor='w', edgecolor='w',
+        # frameon = False)
+
+if SAVEPLOT:
+    fig.savefig(r"C:/Users/kkrao/Dropbox/meetingsKrishna/Figures/wildfire_from_lfmc/PWS_high_res.jpg",dpi =600)
     
 plt.show()
 
 
+#%% plant climate map California
+ca_map_kwargs = dict(llcrnrlon=-125,llcrnrlat=32,urcrnrlon=-113,urcrnrlat=43,
+        projection='cyl')
+sns.set(font_scale = 2, style = "ticks")
+fig, ax = plt.subplots(figsize = (10,10),frameon = False)
+scatter_kwargs = dict(cmap = "PiYG_r",vmin = 0, vmax = 2,alpha = 1)
+ax.axis("off")
+
+# plantClimate[plantClimate<1.9] = np.nan
+fig, _, m, plot = plotmap(gt = gt, var = plantClimate,map_kwargs=ca_map_kwargs ,\
+                          scatter_kwargs=scatter_kwargs, marker_factor = 3, 
+                      fill = "white",background="white",fig = fig,ax=ax,
+                      shapefilepath = r'D:\Krishna\projects\wildfire_from_lfmc\data\CA_Counties_TIGER2016_project\CA_Counties_TIGER2016_project', 
+                  shapefilename ='CA_Counties_TIGER2016')
+risk = np.where((vpd>=0.05)&(plantClimate>=1.5), np.ones(plantClimate.shape), 0)
+cax = fig.add_axes([0.08, 0.18, 0.4, 0.03])
+cax.annotate('Plant-water sensitivity', xy = (0.5,-1.5), ha = 'center', \
+              va = 'top', color = "k", xycoords = "axes fraction")
+cb0 = fig.colorbar(plot,ax=ax,cax = cax, ticks = np.linspace(0,2,5), 
+                   orientation = "horizontal")
+plt.tight_layout()
+ax.axis("off")
+
+if SAVEPLOT:
+    fig.savefig(r"C:/Users/kkrao/Dropbox/meetingsKrishna/Figures/wildfire_from_lfmc/PWS_CA_high_res.jpg",dpi =600)
+    
+plt.show()
 #%% plant climate map for blog
 
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):

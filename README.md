@@ -30,7 +30,7 @@ Rest of the scripts are not needed to reproduce manuscript results. They were us
 ## License
 All scripts and data are available with CC/BY/4.0 license. Please cite my paper if you use any thing from this repo.
 
-Citation: Rao, K., Williams, A.P., Diffenbaugh, N.S. et al. Plant-water sensitivity regulates wildfire vulnerability. Nat Ecol Evol (2022). https://doi.org/10.1038/s41559-021-01654-2.
+Citation: K. Rao, A. P. Williams, N. S. Diffenbaugh, M. Yebra, A. G. Konings, Plant-water sensitivity regulates wildfire vulnerability. Nat. Ecol. Evol. 6, 332–339 (2022).
 
 ## Issues?
 
