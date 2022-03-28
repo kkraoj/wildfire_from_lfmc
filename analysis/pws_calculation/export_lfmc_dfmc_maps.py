@@ -105,7 +105,7 @@ print(f"Exporting {n} images to your Google driver folder called {folder_name}."
 scale = 4000 #resolution in meters
 
 #export image one by one.
-for i in range(1):
+for i in range(n):  
     image = ee.Image(colList.get(i));
     id = image.id().getInfo() or 'image_'+i.toString();
     
